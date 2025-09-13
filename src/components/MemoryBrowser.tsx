@@ -1,123 +1,216 @@
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import * as React from "react";
+import clsx from "clsx";
 import { Button } from "@/components/ui/button";
-import { Brain, FileText, Calendar, User, Target, Search } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Search,
+  FileText,
+  CalendarDays,
+  Quote,
+  X,
+} from "lucide-react";
 
-interface MemoryItem {
+export type MemoryItem = {
   id: string;
-  type: "note" | "goal" | "calendar" | "fact" | "task";
   title: string;
-  content: string;
-  timestamp: string;
-  tags: string[];
-}
+  snippet: string;
+  tag?: string;               // "goal" | "note" | "event" | "quote" | ...
+  icon?: "file" | "event" | "quote";
+};
 
-const mockMemoryItems: MemoryItem[] = [
-  {
-    id: "1",
-    type: "goal",
-    title: "Career Goals 2024",
-    content: "Build AI products that help people manage their personal lives more effectively...",
-    timestamp: "2024-01-15",
-    tags: ["career", "AI", "personal"]
-  },
-  {
-    id: "2",
-    type: "note",
-    title: "Weekly Reflection",
-    content: "This week I made good progress on the Jarvis project. Need to focus more on user experience...",
-    timestamp: "2024-01-10",
-    tags: ["reflection", "progress", "jarvis"]
-  },
-  {
-    id: "3",
-    type: "calendar",
-    title: "Team Meeting",
-    content: "Discuss hackathon progress and next steps for the AI assistant platform",
-    timestamp: "2024-01-12",
-    tags: ["meeting", "team", "hackathon"]
-  },
-  {
-    id: "4",
-    type: "fact",
-    title: "Personal Preference",
-    content: "Prefers to work in focused 2-hour blocks with breaks. Most productive in the morning.",
-    timestamp: "2024-01-08",
-    tags: ["productivity", "preferences", "work-style"]
-  }
+type Props = {
+  compact?: boolean;
+  showSearchInCompact?: boolean; // keep false; you put Search in the page header
+  className?: string;
+  items?: MemoryItem[];
+
+  // ---- new ----
+  editing?: boolean;                         // show red delete badges
+  onDelete?: (id: string) => Promise<void> | void;
+  showSearchBar?: boolean;                   // render search input
+  query?: string;                            // controlled query (from page)
+  onQueryChange?: (q: string) => void;       // controlled setter
+};
+
+const MOCK_ITEMS: MemoryItem[] = [
+  { id: "1", title: "Career Goals 2024", snippet: "Build AI products that help people manage their personal lives more effectively…", tag: "goal",  icon: "file"  },
+  { id: "2", title: "Weekly standup notes", snippet: "Shipped: voice loop POC • Next: RAG ingest • Blockers: none",                tag: "note",  icon: "file"  },
+  { id: "3", title: "Coffee with Alex — Thu 3pm", snippet: "Discuss Jarvis demo polish and video script",                           tag: "event", icon: "event" },
+  { id: "4", title: "Quote I liked", snippet: "“What gets measured gets managed.”",                                                 tag: "quote", icon: "quote" },
 ];
 
-export function MemoryBrowser() {
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "goal": return <Target className="h-4 w-4" />;
-      case "note": return <FileText className="h-4 w-4" />;
-      case "calendar": return <Calendar className="h-4 w-4" />;
-      case "fact": return <User className="h-4 w-4" />;
-      default: return <Brain className="h-4 w-4" />;
-    }
-  };
+function ItemIcon({ kind = "file" as MemoryItem["icon"] }) {
+  switch (kind) {
+    case "event": return <CalendarDays className="h-5 w-5 text-primary" />;
+    case "quote": return <Quote className="h-5 w-5 text-amber-500" />;
+    case "file":
+    default:      return <FileText className="h-5 w-5 text-indigo-500" />;
+  }
+}
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "goal": return "bg-primary/10 text-primary";
-      case "note": return "bg-secondary/50 text-secondary-foreground";
-      case "calendar": return "bg-voice-active/10 text-voice-active";
-      case "fact": return "bg-ai-memory/10 text-ai-memory";
-      default: return "bg-muted text-muted-foreground";
+export function MemoryBrowser({
+  compact = false,
+  showSearchInCompact = false,
+  className = "",
+  items,
+  editing = false,
+  onDelete,
+  showSearchBar = false,
+  query,
+  onQueryChange,
+}: Props) {
+  // local list state so we can remove items after delete
+  const [list, setList] = React.useState<MemoryItem[]>(
+    items && items.length ? items : MOCK_ITEMS
+  );
+  React.useEffect(() => {
+    if (items && items.length) setList(items);
+  }, [items]);
+
+  // search: controlled or uncontrolled
+  const [internalQuery, setInternalQuery] = React.useState(query ?? "");
+  React.useEffect(() => {
+    if (query !== undefined) setInternalQuery(query);
+  }, [query]);
+
+  const q = (query ?? internalQuery).trim().toLowerCase();
+  const filtered = q
+    ? list.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.snippet.toLowerCase().includes(q) ||
+          (m.tag ?? "").toLowerCase().includes(q)
+      )
+    : list;
+
+  // delete confirm
+  const [pendingDelete, setPendingDelete] = React.useState<MemoryItem | null>(null);
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    try {
+      if (onDelete) await onDelete(pendingDelete.id);
+      setList((old) => old.filter((x) => x.id !== pendingDelete.id));
+    } finally {
+      setPendingDelete(null);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold">Memory Browser</h2>
-          <p className="text-muted-foreground">What Jarvis knows about you</p>
-        </div>
-        <Button variant="outline" size="sm">
-          <Search className="h-4 w-4 mr-2" />
-          Search
-        </Button>
-      </div>
+    <section className={clsx("space-y-4", className)}>
+      {/* header area (compact/full) – we keep it minimal per your layout */}
+      {compact ? (
+        showSearchInCompact ? (
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Search className="h-4 w-4" />
+              Search
+            </Button>
+          </div>
+        ) : null
+      ) : (
+        <header className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Memory Browser</h2>
+            <p className="text-muted-foreground">What Jarvis knows about you</p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Search className="h-4 w-4" />
+            Search
+          </Button>
+        </header>
+      )}
 
-      <div className="grid gap-4">
-        {mockMemoryItems.map((item) => (
-          <Card key={item.id} className="p-4 hover:shadow-medium transition-all duration-300">
-            <div className="flex items-start space-x-3">
-              <div className={`p-2 rounded-lg ${getTypeColor(item.type)}`}>
-                {getIcon(item.type)}
+      {showSearchBar && (
+        <div className="relative">
+          <Input
+            value={q}
+            onChange={(e) =>
+              onQueryChange ? onQueryChange(e.target.value) : setInternalQuery(e.target.value)
+            }
+            placeholder="Search memories…"
+            className="pl-9"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {filtered.map((m) => (
+          <Card key={m.id} className="p-4 relative">
+            {/* red delete badge in edit mode */}
+            {editing && (
+              <button
+                type="button"
+                onClick={() => setPendingDelete(m)}
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white grid place-items-center shadow hover:bg-red-600"
+                title="Delete"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+
+            <div className="flex items-start gap-3">
+              <div className="grid place-items-center h-10 w-10 rounded-2xl bg-muted/60">
+                <ItemIcon kind={m.icon} />
               </div>
-              
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">{item.title}</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {item.type}
-                  </Badge>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-lg truncate">{m.title}</h3>
+                  {m.tag && (
+                    <span className="ml-auto text-xs rounded-full px-2 py-0.5 bg-muted text-foreground/80">
+                      {m.tag}
+                    </span>
+                  )}
                 </div>
-                
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {item.content}
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  {m.snippet}
                 </p>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex space-x-1">
-                    {item.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {item.timestamp}
-                  </span>
-                </div>
               </div>
             </div>
           </Card>
         ))}
+
+        {/* empty state */}
+        {filtered.length === 0 && (
+          <Card className="p-6 text-sm text-muted-foreground">
+            No memories match “{q}”.
+          </Card>
+        )}
       </div>
-    </div>
+
+      {/* confirm dialog */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={() => setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this memory?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action can’t be undone. The memory “{pendingDelete?.title}” will be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
   );
 }
+
+export default MemoryBrowser;
