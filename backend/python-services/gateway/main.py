@@ -13,11 +13,11 @@ import json
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
-from contracts import (
+from shared.contracts import (
     ToolExecutionRequest, ToolExecutionResponse, ServiceResponse,
     ToolCategories
 )
-from prompts import JARVIS_CORE_PERSONALITY, VOICE_INTERACTION_PROMPT, CHAT_INTERACTION_PROMPT
+from shared.prompts import JARVIS_CORE_PERSONALITY, VOICE_INTERACTION_PROMPT, CHAT_INTERACTION_PROMPT
 
 load_dotenv()
 
