@@ -1,0 +1,28 @@
+{
+  "name": "@jarvis/prompts",
+  "version": "1.0.0",
+  "description": "System prompts and AI interaction templates for Jarvis-in-a-Box",
+  "main": "system-prompts.ts",
+  "types": "system-prompts.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "prompts",
+    "voice-assistant",
+    "jarvis"
+  ],
+  "author": "KGPK Studio",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  }
+}
