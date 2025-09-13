@@ -29,9 +29,9 @@ test_endpoint() {
 # Test all services
 echo -e "${BLUE}Testing service health endpoints...${NC}"
 
-# Test Express Gateway
-test_endpoint "http://localhost:3001/api/health" "Express Gateway"
-EXPRESS_OK=$?
+# Test Gateway Service
+test_endpoint "http://localhost:3001/api/health" "Gateway Service"
+GATEWAY_OK=$?
 
 # Test n8n Service  
 test_endpoint "http://localhost:8001/health" "n8n Service"
@@ -54,10 +54,10 @@ N8N_UI_OK=$?
 echo ""
 echo -e "${BLUE}Connection Test Summary:${NC}"
 
-if [ $EXPRESS_OK -eq 0 ]; then
-    echo -e "Express Gateway: ${GREEN}[CONNECTED]${NC}"
+if [ $GATEWAY_OK -eq 0 ]; then
+    echo -e "Gateway Service: ${GREEN}[CONNECTED]${NC}"
 else
-    echo -e "Express Gateway: ${RED}[DISCONNECTED]${NC}"
+    echo -e "Gateway Service: ${RED}[DISCONNECTED]${NC}"
 fi
 
 if [ $N8N_OK -eq 0 ]; then
@@ -86,8 +86,8 @@ fi
 
 echo ""
 
-# Test basic chat functionality (if Express Gateway is up)
-if [ $EXPRESS_OK -eq 0 ]; then
+# Test basic chat functionality (if Gateway Service is up)
+if [ $GATEWAY_OK -eq 0 ]; then
     echo -e "${BLUE}Testing basic chat functionality...${NC}"
     
     CHAT_RESPONSE=$(curl -s -X POST http://localhost:3001/api/chat \
@@ -101,12 +101,12 @@ if [ $EXPRESS_OK -eq 0 ]; then
         echo -e "Chat endpoint: ${RED}[FAIL - Check OpenAI API key]${NC}"
     fi
 else
-    echo -e "${YELLOW}Skipping chat test - Express Gateway not running${NC}"
+    echo -e "${YELLOW}Skipping chat test - Gateway Service not running${NC}"
 fi
 
 echo ""
 echo -e "${BLUE}What should work right now:${NC}"
-echo "- Express Gateway health check"
+echo "- Gateway Service health check"
 echo "- Python services health checks"
 echo "- Basic service communication"
 echo "- Chat endpoint (with valid OpenAI API key)"

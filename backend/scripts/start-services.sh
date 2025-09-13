@@ -23,7 +23,7 @@ check_port() {
 
 # Check required ports
 echo -e "${BLUE}Checking ports...${NC}"
-check_port 3001 || exit 1  # Express Gateway
+check_port 3001 || exit 1  # Gateway Service
 check_port 8001 || exit 1  # n8n Service
 check_port 8002 || exit 1  # RAG Service
 
@@ -31,7 +31,7 @@ check_port 8002 || exit 1  # RAG Service
 echo -e "${BLUE}Starting infrastructure services...${NC}"
 if ! docker ps | grep -q "jarvis-weaviate"; then
     echo -e "${YELLOW}Starting Docker infrastructure...${NC}"
-    docker-compose -f ../shared/infra/docker-compose.yml up -d
+    docker-compose -f docker-compose.yml up -d
     echo -e "${GREEN}Waiting for services to be ready...${NC}"
     sleep 10
 else
@@ -58,21 +58,21 @@ cd ../..
 # Wait a moment for Python services to start
 sleep 5
 
-# Start Express Gateway
-echo -e "${YELLOW}Starting Express Gateway on port 3001...${NC}"
-cd express-gateway
-npm run dev &
-EXPRESS_PID=$!
-cd ..
+# Start Gateway Service
+echo -e "${YELLOW}Starting Gateway service on port 3001...${NC}"
+cd python-services/gateway
+python -m uvicorn main:app --host 0.0.0.0 --port 3001 --reload &
+GATEWAY_PID=$!
+cd ../..
 
 # Store PIDs for cleanup
 echo $N8N_PID > .n8n-service.pid
 echo $RAG_PID > .rag-service.pid  
-echo $EXPRESS_PID > .express-gateway.pid
+echo $GATEWAY_PID > .gateway-service.pid
 
 echo -e "${GREEN} All services started!${NC}"
 echo -e "${BLUE}Services running on:${NC}"
-echo -e "   Express Gateway: http://localhost:3001"
+echo -e "   Gateway Service: http://localhost:3001"
 echo -e "   n8n Service: http://localhost:8001"
 echo -e "   RAG Service: http://localhost:8002"
 echo -e "   n8n UI: http://localhost:5678"
