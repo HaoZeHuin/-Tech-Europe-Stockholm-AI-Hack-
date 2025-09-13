@@ -4,3 +4,7 @@ httpx==0.25.2
 python-dotenv==1.0.0
 pydantic==2.5.0
 python-multipart==0.0.6
+websockets>=13.0,<15.0
+openai>=1.100.0
+python-json-logger==2.0.7
+openai-agents>=0.3.0
