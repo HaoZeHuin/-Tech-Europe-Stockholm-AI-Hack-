@@ -15,7 +15,10 @@ A voice-first, privacy-aware personal OS that lives on your device and acts for 
 
 ### Tech Stack
 - **Frontend**: React + Vite (Lovable scaffold) - Voice, Chat, Files, Memory tabs
-- **Backend**: Python FastAPI - Tool endpoints + n8n webhooks + `/chat` route
+- **Backend**: Multi-service architecture
+  - **Express Gateway**: TypeScript API gateway and tool router
+  - **Python Services**: FastAPI services for RAG and n8n integration
+  - **Shared Contracts**: TypeScript types and tool definitions
 - **Voice**: Browser → OpenAI Realtime (WebRTC) for low-latency speech↔speech
 - **Non-voice**: Server calls OpenAI Responses/Agents for text/file flows
 - **Vector DB**: Weaviate for RAG over personal documents
@@ -37,18 +40,23 @@ A voice-first, privacy-aware personal OS that lives on your device and acts for 
 
 ```
 jarvis-voice-os/
-├── frontend/             # React + Vite (Lovable output)
-├── backend/              # Python FastAPI + tool handlers + n8n webhooks
-├── packages/
-│   ├── contracts/        # Shared TypeScript types
-│   └── prompts/          # System prompts, memory-extractor prompts
-├── infra/
-│   └── docker-compose.yml # weaviate, n8n, postgres, redis
+├── frontend/                    # React + Vite (Lovable output)
+├── backend/                     # Multi-service backend architecture
+│   ├── express-gateway/         # TypeScript API gateway & tool router
+│   ├── python-services/         # FastAPI microservices
+│   │   ├── n8n-service/         # n8n workflow integration
+│   │   └── rag-service/         # RAG and vector search
+│   ├── shared/                  # Shared resources
+│   │   ├── contracts/           # TypeScript types & tool definitions
+│   │   ├── infra/              # Docker compose files
+│   │   └── prompts/            # System prompts & templates
+│   └── scripts/                # Service management scripts
+├── docs/                       # Comprehensive documentation
 ├── data/
-│   ├── vault/           # Markdown demo vault
-│   ├── pdfs/            # PDF documents
-│   ├── indices/         # Vector DB files
-│   └── life.db          # SQLite personal data
+│   ├── vault/                  # Markdown demo vault
+│   ├── pdfs/                   # PDF documents
+│   ├── indices/                # Vector DB files
+│   └── life.db                 # SQLite personal data
 └── README.md
 ```
 
@@ -66,21 +74,31 @@ jarvis-voice-os/
 git clone <repo-url>
 cd jarvis-voice-os
 
+# Install all dependencies using the setup script
+cd backend && chmod +x scripts/install-dependencies.sh && ./scripts/install-dependencies.sh && cd ..
+
 # Install frontend dependencies
 cd frontend && npm install && cd ..
 
-# Install backend dependencies
-cd backend && pip install -r requirements.txt && cd ..
+# Start infrastructure services
+cd backend && docker-compose -f shared/infra/docker-compose.yml up -d && cd ..
 
-# Start infrastructure
-docker-compose -f infra/docker-compose.yml up -d
+# Start all backend services
+cd backend && ./scripts/start-services.sh
 
-# Start development
-npm run dev
+# In a new terminal, start frontend
+cd frontend && npm run dev
 ```
 
 ### Environment Variables
-Create `.env` files in both `backend` and `frontend`:
+Copy and configure the environment files from examples:
+
+```bash
+# Backend services
+cp backend/express-gateway/env.example backend/express-gateway/.env
+cp backend/python-services/n8n-service/env.example backend/python-services/n8n-service/.env
+cp backend/python-services/rag-service/env.example backend/python-services/rag-service/.env
+```
 
 **Backend (.env)**:
 ```bash

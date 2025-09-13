@@ -2,38 +2,82 @@
 
 ## 🏗️ Architecture Overview
 
-The backend is a lightweight Express server that acts as a **tool executor and auth relay** between the frontend and external services.
+The backend uses a **multi-service architecture** with an Express Gateway coordinating between TypeScript and Python services.
 
 ```
-Frontend (Voice/Chat) → Backend → Tools/APIs
-                    ↓
-                n8n Workflows
+Frontend (Voice/Chat) → Express Gateway → Python Services
+                           ↓                ↓
+                      Tool Router      n8n/RAG Services
+                           ↓                ↓
+                    Direct Tools      Weaviate/Workflows
 ```
+
+### Service Architecture
+- **Express Gateway** (TypeScript): API gateway, tool routing, authentication
+- **Python Services**: Specialized FastAPI services for RAG and n8n integration
+- **Shared Contracts**: Common TypeScript types and tool definitions
 
 ## 🔧 Core Components
 
-### **Express Server Structure**
+### **Backend Structure**
 ```
-apps/backend/
-├── src/
-│   ├── routes/           # API endpoints
-│   ├── tools/            # Tool handlers
-│   ├── middleware/       # Auth, validation, logging
-│   ├── services/         # External service clients
-│   └── utils/            # Shared utilities
-├── package.json
-└── .env
+backend/
+├── express-gateway/         # TypeScript API Gateway
+│   ├── src/
+│   │   ├── routes/         # API endpoints (/chat, /tools, /health)
+│   │   ├── services/       # Tool routing logic
+│   │   ├── middleware/     # Auth, validation, logging
+│   │   └── types/          # Type definitions
+│   ├── package.json
+│   └── .env
+├── python-services/         # FastAPI Microservices
+│   ├── n8n-service/        # n8n workflow integration
+│   ├── rag-service/        # RAG and vector search
+│   └── */requirements.txt
+├── shared/                  # Shared Resources
+│   ├── contracts/          # TypeScript types & schemas
+│   ├── infra/             # Docker compose
+│   └── prompts/           # System prompts
+└── scripts/               # Service management
+    ├── start-services.sh
+    ├── stop-services.sh
+    └── test-connections.sh
 ```
 
 ### **Key Responsibilities**
-- **Tool Execution**: Direct tools (weather, maps, RAG) and n8n webhooks
+
+#### Express Gateway
+- **API Gateway**: Single entry point for frontend requests
+- **Tool Routing**: Intelligent routing to appropriate services
 - **Authentication**: OpenAI token management and user sessions
-- **Data Access**: SQLite queries and Weaviate operations
-- **Validation**: Request/response validation using contracts
+- **Request/Response**: Validation using shared contracts
+
+#### Python Services
+- **RAG Service**: Vector search, document indexing, Weaviate operations
+- **n8n Service**: Workflow triggers, calendar integration, PDF processing
+- **Data Access**: SQLite queries and specialized tool execution
 
 ## 🛠️ Implementation Guide
 
-### **1. Server Setup**
+### **1. Service Management**
+
+The backend includes comprehensive service management scripts:
+
+```bash
+# Install all dependencies
+./scripts/install-dependencies.sh
+
+# Start all services (Express Gateway + Python services)
+./scripts/start-services.sh
+
+# Test service connections and health
+./scripts/test-connections.sh
+
+# Stop all services
+./scripts/stop-services.sh
+```
+
+### **2. Express Gateway Setup**
 
 ```typescript
 // src/server.ts
