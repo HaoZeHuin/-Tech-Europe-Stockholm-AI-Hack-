@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Jarvis Personal AI Design System - Warm, intimate, trustworthy */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Core clean palette - Antique white backgrounds */
+    --background: 42 33% 93%;  /* #FFEEDD - Antique white */
+    --foreground: 0 0% 15%;
+
+    /* Card and surface colors - clean whites */
+    --card: 45 50% 96%;
+    --card-foreground: 0 0% 15%;
+
+    --popover: 45 40% 97%;
+    --popover-foreground: 0 0% 15%;
+
+    /* Primary - Vista Blue for main actions */
+    --primary: 218 43% 69%;  /* #91A7D1 - Vista Blue */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 218 50% 75%;
+
+    /* Secondary - Silver Lake Blue */
+    --secondary: 214 33% 58%;  /* #6A8DC3 - Silver Lake Blue */
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted - subtle tones */
+    --muted: 42 25% 88%;
+    --muted-foreground: 0 0% 45%;
+
+    /* Accent - Apricot for warmth */
+    --accent: 30 100% 87%;  /* #FFD8BE - Apricot */
+    --accent-foreground: 0 0% 20%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 30 30% 98%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 25 25% 15%;
+    
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 30 30% 98%;
+
+    /* Interactive elements */
+    --border: 25 20% 88%;
+    --input: 25 20% 90%;
+    --ring: 250 50% 45%;
+
+    /* Voice & AI specific colors */
+    --voice-active: 345 52% 54%;  /* #BB2649 - Rose red for active states */
+    --voice-inactive: 214 33% 58%;
+    --ai-thinking: 218 43% 69%;
+    --memory-glow: 30 100% 87%;
+
+    /* Gradients for clean feel */
+    --gradient-primary: linear-gradient(135deg, hsl(218 43% 69%), hsl(214 33% 58%));
+    --gradient-warm: linear-gradient(135deg, hsl(30 100% 87%), hsl(42 33% 93%));
+    --gradient-voice: linear-gradient(135deg, hsl(345 52% 54%), hsl(218 43% 69%));
+    --gradient-memory: linear-gradient(135deg, hsl(30 100% 87%), hsl(218 43% 69%));
+
+    /* Shadows for depth and warmth */
+    --shadow-soft: 0 2px 12px hsl(25 25% 15% / 0.08);
+    --shadow-medium: 0 4px 24px hsl(25 25% 15% / 0.12);
+    --shadow-voice: 0 4px 20px hsl(142 76% 45% / 0.25);
+    --shadow-glow: 0 0 30px hsl(250 50% 45% / 0.2);
+
+    /* Animation and transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-gentle: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode - clean, modern feeling */
+    --background: 0 0% 8%;
+    --foreground: 42 33% 93%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 42 33% 93%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 42 33% 93%;
+
+    --primary: 218 43% 69%;
+    --primary-foreground: 0 0% 8%;
+    --primary-glow: 218 50% 75%;
+
+    --secondary: 214 33% 58%;
+    --secondary-foreground: 42 33% 93%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 30 100% 87%;
+    --accent-foreground: 0 0% 15%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 25 15% 8%;
+    
+    --warning: 38 85% 55%;
+    --warning-foreground: 25 15% 8%;
+    
+    --destructive: 0 65% 60%;
+    --destructive-foreground: 25 15% 8%;
+
+    --border: 25 15% 20%;
+    --input: 25 15% 18%;
+    --ring: 250 60% 65%;
+
+    --voice-active: 345 52% 54%;
+    --voice-inactive: 0 0% 45%;
+    --ai-thinking: 218 43% 69%;
+    --memory-glow: 30 100% 87%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(218 43% 69%), hsl(214 33% 58%));
+    --gradient-warm: linear-gradient(135deg, hsl(30 100% 87%), hsl(0 0% 15%));
+    --gradient-voice: linear-gradient(135deg, hsl(345 52% 54%), hsl(218 43% 69%));
+    --gradient-memory: linear-gradient(135deg, hsl(30 100% 87%), hsl(218 43% 69%));
+
+    --shadow-soft: 0 2px 12px hsl(0 0% 0% / 0.3);
+    --shadow-medium: 0 4px 24px hsl(0 0% 0% / 0.4);
+    --shadow-voice: 0 4px 20px hsl(142 70% 50% / 0.3);
+    --shadow-glow: 0 0 30px hsl(250 60% 65% / 0.2);
+
+    --sidebar-background: 25 15% 10%;
+    --sidebar-foreground: 30 20% 85%;
+    --sidebar-primary: 250 60% 65%;
+    --sidebar-primary-foreground: 25 15% 8%;
+    --sidebar-accent: 25 15% 15%;
+    --sidebar-accent-foreground: 30 20% 85%;
+    --sidebar-border: 25 15% 20%;
+    --sidebar-ring: 250 60% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Custom scrollbar for intimate feel */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+}
+
+@layer components {
+  /* Voice interface animations */
+  .voice-pulse {
+    animation: voice-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes voice-pulse {
+    0%, 100% { 
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% { 
+      transform: scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  .ai-thinking {
+    animation: ai-thinking 2s ease-in-out infinite;
+  }
+
+  @keyframes ai-thinking {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* Gentle glow effects */
+  .glow-soft {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .memory-glow {
+    background: var(--gradient-memory);
+    background-size: 200% 200%;
+    animation: memory-flow 3s ease-in-out infinite;
+  }
+
+  @keyframes memory-flow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+}
