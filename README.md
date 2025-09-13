@@ -14,8 +14,8 @@ A voice-first, privacy-aware personal OS that lives on your device and acts for 
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Frontend**: Next.js (Lovable scaffold) - Voice, Chat, Files, Memory tabs
-- **Backend**: Node.js (Express/Fastify) - Tool endpoints + n8n webhooks + `/chat` route
+- **Frontend**: React + Vite (Lovable scaffold) - Voice, Chat, Files, Memory tabs
+- **Backend**: Python FastAPI - Tool endpoints + n8n webhooks + `/chat` route
 - **Voice**: Browser → OpenAI Realtime (WebRTC) for low-latency speech↔speech
 - **Non-voice**: Server calls OpenAI Responses/Agents for text/file flows
 - **Vector DB**: Weaviate for RAG over personal documents
@@ -37,19 +37,18 @@ A voice-first, privacy-aware personal OS that lives on your device and acts for 
 
 ```
 jarvis-voice-os/
-├── apps/
-│   ├── frontend/          # Next.js (Lovable output)
-│   └── backend/           # Express + tool handlers + n8n webhooks
+├── frontend/             # React + Vite (Lovable output)
+├── backend/              # Python FastAPI + tool handlers + n8n webhooks
 ├── packages/
-│   ├── contracts/         # Shared TypeScript types
-│   └── prompts/           # System prompts, memory-extractor prompts
+│   ├── contracts/        # Shared TypeScript types
+│   └── prompts/          # System prompts, memory-extractor prompts
 ├── infra/
 │   └── docker-compose.yml # weaviate, n8n, postgres, redis
 ├── data/
-│   ├── vault/            # Markdown demo vault
-│   ├── pdfs/             # PDF documents
-│   ├── indices/          # Vector DB files
-│   └── life.db           # SQLite personal data
+│   ├── vault/           # Markdown demo vault
+│   ├── pdfs/            # PDF documents
+│   ├── indices/         # Vector DB files
+│   └── life.db          # SQLite personal data
 └── README.md
 ```
 
@@ -57,6 +56,7 @@ jarvis-voice-os/
 
 ### Prerequisites
 - Node.js 18+
+- Python 3.8+
 - Docker & Docker Compose
 - OpenAI API key
 
@@ -65,17 +65,22 @@ jarvis-voice-os/
 # Clone and install
 git clone <repo-url>
 cd jarvis-voice-os
-npm run setup
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Install backend dependencies
+cd backend && pip install -r requirements.txt && cd ..
 
 # Start infrastructure
-npm run docker:up
+docker-compose -f infra/docker-compose.yml up -d
 
 # Start development
 npm run dev
 ```
 
 ### Environment Variables
-Create `.env` files in both `apps/backend` and `apps/frontend`:
+Create `.env` files in both `backend` and `frontend`:
 
 **Backend (.env)**:
 ```bash
@@ -83,25 +88,20 @@ OPENAI_API_KEY=your_openai_key
 WEAVIATE_URL=http://localhost:8080
 N8N_WEBHOOK_URL=http://localhost:5678
 REDIS_URL=redis://localhost:6379
-DATABASE_PATH=../../data/life.db
-VAULT_PATH=../../data/vault
+DATABASE_PATH=../data/life.db
+VAULT_PATH=../data/vault
 ```
 
 **Frontend (.env.local)**:
 ```bash
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-NEXT_PUBLIC_OPENAI_REALTIME_URL=wss://api.openai.com/v1/realtime
+VITE_BACKEND_URL=http://localhost:8000
+VITE_OPENAI_REALTIME_URL=wss://api.openai.com/v1/realtime
 ```
 
 ## 🔧 Development
 
 ### Team Branches
 - `main` - Stable demo
-- `feat/voice-realtime` - Voice interface (Kaung Zin Ye)
-- `feat/weaviate-life-db` - Vector DB & SQLite integration (Kenneth)
-- `feat/n8n-flows` - Workflow automation (Ignatius)  
-- `feat/ui-voice-chat` - Voice/Chat UI components (Hao Ze)
-- `feat/ui-files-memory` - Files/Memory UI (Melody)
 
 ### Available Commands
 ```bash
