@@ -35,7 +35,7 @@ kill_service() {
 }
 
 # Stop services
-kill_service "Express Gateway" ".express-gateway.pid"
+kill_service "Gateway Service" ".gateway-service.pid"
 kill_service "n8n Service" ".n8n-service.pid"
 kill_service "RAG Service" ".rag-service.pid"
 
@@ -47,4 +47,4 @@ lsof -ti:8002 | xargs kill -9 2>/dev/null || true
 
 echo -e "${GREEN} All services stopped!${NC}"
 echo -e "${YELLOW}Infrastructure services (Docker) are still running.${NC}"
-echo -e "${YELLOW}To stop them, run:${NC} docker-compose -f ../shared/infra/docker-compose.yml down"
+echo -e "${YELLOW}To stop them, run:${NC} docker-compose -f docker-compose.yml down"

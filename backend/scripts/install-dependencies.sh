@@ -18,13 +18,6 @@ command_exists() {
 # Check prerequisites
 echo -e "${BLUE}Checking prerequisites...${NC}"
 
-if ! command_exists node; then
-    echo -e "${RED}[ERROR] Node.js not found. Please install Node.js 18+${NC}"
-    exit 1
-else
-    echo -e "${GREEN}[OK] Node.js found: $(node --version)${NC}"
-fi
-
 if ! command_exists python3; then
     echo -e "${RED}[ERROR] Python3 not found. Please install Python 3.8+${NC}"
     exit 1
@@ -39,22 +32,22 @@ else
     echo -e "${GREEN}[OK] pip found: $(pip --version)${NC}"
 fi
 
-# Install Express Gateway dependencies
-echo -e "${BLUE}Installing Express Gateway (TypeScript) dependencies...${NC}"
-cd express-gateway
-if [ -f "package.json" ]; then
-    npm install
+# Install Gateway Service dependencies
+echo -e "${BLUE}Installing Gateway Service (Python) dependencies...${NC}"
+cd python-services/gateway
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}[OK] Express Gateway dependencies installed${NC}"
+        echo -e "${GREEN}[OK] Gateway Service dependencies installed${NC}"
     else
-        echo -e "${RED}[ERROR] Failed to install Express Gateway dependencies${NC}"
+        echo -e "${RED}[ERROR] Failed to install Gateway Service dependencies${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}[ERROR] express-gateway/package.json not found${NC}"
+    echo -e "${RED}[ERROR] python-services/gateway/requirements.txt not found${NC}"
     exit 1
 fi
-cd ..
+cd ../..
 
 # Install Python services dependencies
 echo -e "${BLUE}Installing Python services dependencies...${NC}"
@@ -97,7 +90,7 @@ echo -e "${GREEN}[SUCCESS] All dependencies installed successfully!${NC}"
 echo ""
 echo -e "${BLUE}Next steps:${NC}"
 echo -e "1. Copy environment files:"
-echo -e "   ${YELLOW}cp express-gateway/env.example express-gateway/.env${NC}"
+echo -e "   ${YELLOW}cp python-services/gateway/env.example python-services/gateway/.env${NC}"
 echo -e "   ${YELLOW}cp python-services/n8n-service/env.example python-services/n8n-service/.env${NC}"
 echo -e "   ${YELLOW}cp python-services/rag-service/env.example python-services/rag-service/.env${NC}"
 echo ""

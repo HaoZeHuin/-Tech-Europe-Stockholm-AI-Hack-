@@ -5,7 +5,12 @@ import httpx
 import os
 from dotenv import load_dotenv
 
-from schemas import PromptRequest, ToolRequest
+# Import shared contracts
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
+from contracts import ToolExecutionRequest
+
+from schemas import PromptRequest
 from jarvis import Jarvis
 
 load_dotenv()
@@ -61,10 +66,10 @@ async def prompt(request: PromptRequest):
         raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
 @app.post("/tools/{tool_name}")
-async def execute_tool(tool_name: str, request: ToolRequest):
+async def execute_tool(tool_name: str, request: ToolExecutionRequest):
     """Execute n8n workflow tools - placeholder for Ignatius's implementation"""
     try:
-        # TODO: Ignatius will implement the actual n8n tool integrations
+        # TODO: Iggy will implement the actual n8n tool integrations
         return {
             "success": True,
             "message": f"Tool '{tool_name}' execution placeholder for Iggy",

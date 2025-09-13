@@ -5,7 +5,10 @@ import os
 from dotenv import load_dotenv
 from typing import Dict, Any, List
 import json
-from pydantic import BaseModel
+# Import shared contracts
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
+from contracts import ToolExecutionRequest, RagSearchParams, RagSearchResult, RagChunk
 
 load_dotenv()
 
@@ -33,12 +36,6 @@ weaviate_client = weaviate.Client(
     } if os.getenv("OPENAI_API_KEY") else None
 )
 
-class ToolRequest(BaseModel):
-    parameters: Dict[str, Any]
-    timestamp: str = None
-    user_id: str = None
-    conversation_id: str = None
-
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
@@ -57,7 +54,7 @@ def health_check():
     }
 
 @app.post("/tools/rag_search")
-async def rag_search(request: ToolRequest):
+async def rag_search(request: ToolExecutionRequest):
     """Execute RAG search using Weaviate"""
     try:
         params = request.parameters
