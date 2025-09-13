@@ -9,7 +9,8 @@ from agents import Agent, Runner
 SYSTEM_PROMPT = """
 You are Jarvis, a helpful personal assistant build to help the user with their day to day tasks.
 You have 2 main functions:
-    1. Over long periods of use, build up a 
+    1. Over long periods of use, build up a knowledge base of the user, empowering your ability to assist them
+    2. Make use of the provided tools to interact with external services
 """
 
 load_dotenv()
