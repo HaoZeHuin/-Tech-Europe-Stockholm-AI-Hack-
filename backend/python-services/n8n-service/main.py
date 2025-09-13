@@ -5,11 +5,6 @@ import httpx
 import os
 from dotenv import load_dotenv
 
-# Import shared contracts
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
-from shared.contracts import ToolExecutionRequest
-
 from schemas import PromptRequest
 from jarvis import Jarvis
 
@@ -43,31 +38,13 @@ def health_check():
 
 @app.post("/prompt")
 async def prompt(request: PromptRequest):
-    """Legacy endpoint - now proxies to Express Gateway for better architecture"""
-    try:
-        # Proxy to Express Gateway for unified chat handling
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{os.getenv('EXPRESS_GATEWAY_URL', 'http://localhost:3001')}/api/chat",
-                json={
-                    "message": request.prompt_str,
-                    "stream": False
-                },
-                timeout=30.0
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                return {"response": result.get("response", "No response")}
-            else:
-                raise HTTPException(status_code=response.status_code, detail="Gateway request failed")
-                
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
+    data = request.prompt_str
+    return StreamingResponse(jarvis.chat(data))
 
-@app.post("/tools/{tool_name}")
+
+""" @app.post("/tools/{tool_name}")
 async def execute_tool(tool_name: str, request: ToolExecutionRequest):
-    """Execute n8n workflow tools - placeholder for Ignatius's implementation"""
+    "Execute n8n workflow tools - placeholder for Ignatius's implementation"
     try:
         # TODO: Iggy will implement the actual n8n tool integrations
         return {
@@ -78,7 +55,7 @@ async def execute_tool(tool_name: str, request: ToolExecutionRequest):
         }
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) """
 
 if __name__ == "__main__":
     import uvicorn
