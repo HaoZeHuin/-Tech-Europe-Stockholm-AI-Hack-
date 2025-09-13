@@ -17,6 +17,9 @@ import {
   FolderOpen
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+// Put this near the top of your component (outside the function) if you want base URL support:
+const API_BASE =
+  (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/+$/, "");
 
 interface FileItem {
   id: string;
@@ -102,10 +105,43 @@ export function FileManager() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleFileUpload = () => {
-    // TODO: Implement file upload logic
-    console.log("File upload triggered");
+  // Replace your current handleFileUpload with this:
+  const handleFileUpload = async () => {
+    // create a temporary file input so we don't need to add one to the JSX
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = true;
+    input.accept = ".md,.pdf"; // must match your backend allow-list
+
+    input.onchange = async () => {
+      const chosen = Array.from(input.files || []);
+      if (!chosen.length) return;
+
+      const form = new FormData();
+      chosen.forEach((f) => form.append("files", f)); // field name must be "files"
+
+      try {
+        const res = await fetch(`${API_BASE}/upload/files`, {
+          method: "POST",
+          body: form, // DO NOT set Content-Type; browser sets it with boundary
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Upload failed: ${res.status} ${text}`);
+        }
+        const data = await res.json();
+        console.log("✅ Upload OK:", data); // { saved: [...], ingested_chunks: N }
+        alert(`Ingested ${data.ingested_chunks} chunks into Weaviate`);
+      } catch (err) {
+        console.error("❌ Upload error:", err);
+        alert("Upload failed. Check server logs/CORS.");
+      }
+    };
+
+    // trigger the picker
+    input.click();
   };
+
 
   return (
     <div className="space-y-6">
