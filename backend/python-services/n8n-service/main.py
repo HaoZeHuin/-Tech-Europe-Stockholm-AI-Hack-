@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Import shared contracts
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
-from contracts import ToolExecutionRequest
+from shared.contracts import ToolExecutionRequest
 
 from schemas import PromptRequest
 from jarvis import Jarvis
