@@ -31,6 +31,11 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
   const bufferDurationRef = useRef(0);
   const isRecordingRef = useRef(false);
 
+  // Audio playback refs with buffering
+  const audioPlaybackBufferRef = useRef<ArrayBuffer[]>([]);
+  const isPlayingRef = useRef(false);
+  const playbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Initialize audio context and WebSocket connection
   const initializeConnection = useCallback(async () => {
     if (connectionStatus === 'connecting' || connectionStatus === 'connected') return;
@@ -39,13 +44,14 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
     
     try {
       // Initialize audio contexts
-      audioContextRef.current = new AudioContext({ sampleRate: 16000 });
-      audioPlaybackContextRef.current = new AudioContext({ sampleRate: 16000 });
+      // Use 24kHz to match OpenAI response.audio.delta PCM format
+      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      audioPlaybackContextRef.current = new AudioContext({ sampleRate: 24000 });
       
       // Get microphone access
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
+          sampleRate: 24000,  // Match playback rate if device supports it
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -120,8 +126,8 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
           const pcm16Data = float32ToPCM16(audioData);
           audioBufferRef.current.push(pcm16Data);
           
-          // Calculate buffer duration (assuming 16kHz sample rate)
-          bufferDurationRef.current += (audioData.length / 16000) * 1000; // in milliseconds
+          // Calculate buffer duration (assuming 24kHz sample rate for input)
+          bufferDurationRef.current += (audioData.length / 24000) * 1000; // in milliseconds
           
           // Send accumulated audio data periodically (every ~100ms)
           if (bufferDurationRef.current >= 100) {
@@ -153,24 +159,28 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
         break;
         
       case 'response.audio.delta':
-        // Play audio chunk - this is the key fix!
+        // Add chunk to buffer (will auto-start when 100ms accumulated)
         if (data.delta) {
           console.log('Received audio delta:', data.delta.length, 'characters');
           const audioData = base64ToArrayBuffer(data.delta);
-          audioQueueRef.current.push(audioData);
-          if (!isPlayingRef.current) {
-            // Resume audio context if needed (required by browsers)
-            if (audioPlaybackContextRef.current?.state === 'suspended') {
-              audioPlaybackContextRef.current.resume();
-            }
-            playNextAudioChunk();
+          
+          // Resume audio context if needed (required by browsers)
+          if (audioPlaybackContextRef.current?.state === 'suspended') {
+            audioPlaybackContextRef.current.resume();
           }
+          
+          // Add to buffer - will start playing when 100ms accumulated
+          addAudioToBuffer(audioData);
         }
         break;
         
       case 'response.audio.done':
         console.log('Audio response completed');
-        setIsSpeaking(false);
+        // Play any remaining buffered audio
+        if (audioPlaybackBufferRef.current.length > 0 && !isPlayingRef.current) {
+          console.log('Playing final buffered chunks');
+          playBufferedAudio();
+        }
         break;
         
       case 'response.text.delta':
@@ -193,49 +203,77 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
     }
   };
 
-  // Play audio chunks
-  const playNextAudioChunk = async () => {
-    if (audioQueueRef.current.length === 0 || !audioPlaybackContextRef.current) return;
+  // Buffer and play audio chunks with 100ms minimum buffer
+  const addAudioToBuffer = (rawPcmData: ArrayBuffer) => {
+    audioPlaybackBufferRef.current.push(rawPcmData);
+    
+    // Calculate total buffered duration
+    let totalDuration = 0;
+    for (const chunk of audioPlaybackBufferRef.current) {
+      const pcm16Array = new Int16Array(chunk);
+      totalDuration += (pcm16Array.length / 24000) * 1000; // duration in ms at 24kHz
+    }
+    
+    console.log(`Audio buffer: ${audioPlaybackBufferRef.current.length} chunks, ${totalDuration.toFixed(1)}ms total`);
+    
+    // Start playback when we have at least 100ms of audio
+    if (!isPlayingRef.current && totalDuration >= 100) {
+      console.log('Starting buffered playback with', totalDuration.toFixed(1), 'ms of audio');
+      playBufferedAudio();
+    }
+  };
+
+  // Play all buffered audio as one continuous stream
+  const playBufferedAudio = async () => {
+    if (!audioPlaybackContextRef.current || audioPlaybackBufferRef.current.length === 0) return;
     
     isPlayingRef.current = true;
     setIsSpeaking(true);
     
     try {
-      const rawPcmData = audioQueueRef.current.shift()!;
-      console.log('Playing audio chunk:', rawPcmData.byteLength, 'bytes');
+      // Combine all buffered chunks into one continuous buffer
+      let totalSamples = 0;
+      const chunks: Int16Array[] = [];
       
-      // Convert raw PCM16 data to AudioBuffer
-      const pcm16Array = new Int16Array(rawPcmData);
-      const audioBuffer = audioPlaybackContextRef.current.createBuffer(
-        1, // mono channel
-        pcm16Array.length,
-        16000 // 16kHz sample rate
-      );
-      
-      // Convert PCM16 to Float32 and copy to AudioBuffer
-      const channelData = audioBuffer.getChannelData(0);
-      for (let i = 0; i < pcm16Array.length; i++) {
-        channelData[i] = pcm16Array[i] / 32768.0; // Convert from int16 to float32
+      for (const chunk of audioPlaybackBufferRef.current) {
+        const pcm16Array = new Int16Array(chunk);
+        chunks.push(pcm16Array);
+        totalSamples += pcm16Array.length;
       }
       
-      // Create and play the audio source
+      // Create one large AudioBuffer at 24kHz
+      const audioBuffer = audioPlaybackContextRef.current.createBuffer(1, totalSamples, 24000);
+      const channelData = audioBuffer.getChannelData(0);
+      
+      // Copy all chunks into the continuous buffer
+      let offset = 0;
+      for (const chunk of chunks) {
+        for (let i = 0; i < chunk.length; i++) {
+          channelData[offset + i] = chunk[i] / 32768.0; // Convert from int16 to float32
+        }
+        offset += chunk.length;
+      }
+      
+      console.log(`Playing continuous buffer: ${totalSamples} samples (${(totalSamples / 24000 * 1000).toFixed(1)}ms) at 24kHz`);
+      
+      // Play the continuous buffer
       const source = audioPlaybackContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioPlaybackContextRef.current.destination);
       
       source.onended = () => {
         isPlayingRef.current = false;
-        if (audioQueueRef.current.length > 0) {
-          playNextAudioChunk();
-        } else {
-          setIsSpeaking(false);
-        }
+        setIsSpeaking(false);
+        console.log('Continuous audio playback ended');
       };
       
       source.start();
-      console.log('Started playing audio chunk with', pcm16Array.length, 'samples');
+      
+      // Clear the buffer after starting playback
+      audioPlaybackBufferRef.current = [];
+      
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('Error playing buffered audio:', error);
       isPlayingRef.current = false;
       setIsSpeaking(false);
     }
@@ -337,6 +375,13 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
     audioBufferRef.current = [];
     bufferDurationRef.current = 0;
     isRecordingRef.current = false;
+    
+    // Clear playback buffer
+    audioPlaybackBufferRef.current = [];
+    if (playbackTimeoutRef.current) {
+      clearTimeout(playbackTimeoutRef.current);
+      playbackTimeoutRef.current = null;
+    }
   };
 
   // Utility functions
