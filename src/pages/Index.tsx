@@ -53,8 +53,8 @@ const Index = () => {
             
             {/* Centered Text Inside Weather Icon */}
             <div className="absolute inset-0 flex flex-col items-center justify-center space-y-1">
-              <h1 className="text-4xl font-medium text-foreground">
-                Hi, Alex
+              <h1 className="font-archivo text-6xl md:text-7xl font-bold leading-tight tracking-tight">
+                HI, ALEX
               </h1>
               <p className="text-lg text-foreground/80">
                 How can Jarvis help you today?
