@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -130,7 +131,10 @@ export default {
         "memory-flow": "memory-flow 3s ease-in-out infinite",
         "gentle-float": "gentle-float 3s ease-in-out infinite",
       },
+      fontFamily: {
+        archivo: ['"Archivo Narrow"', "ui-sans-serif", "system-ui", "sans-serif"],
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 } satisfies Config;
