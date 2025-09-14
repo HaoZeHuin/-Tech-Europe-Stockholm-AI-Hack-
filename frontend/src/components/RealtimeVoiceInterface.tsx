@@ -33,7 +33,6 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
 
   // Audio playback refs with buffering
   const audioPlaybackBufferRef = useRef<ArrayBuffer[]>([]);
-  const isPlayingRef = useRef(false);
   const playbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize audio context and WebSocket connection

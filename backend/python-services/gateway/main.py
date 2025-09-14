@@ -38,11 +38,6 @@ else:
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
-from shared.contracts import (
-    ToolExecutionRequest, ToolExecutionResponse, ServiceResponse,
-    ToolCategories
-)
-
 load_dotenv()
 
 # Setup logging

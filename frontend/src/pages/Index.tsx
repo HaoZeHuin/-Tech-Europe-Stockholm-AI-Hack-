@@ -113,7 +113,7 @@ const Index = () => {
             {/* RIGHT: CONTENT */}
             <section className="space-y-8">
               <TabsContent value="voice" className="space-y-8 m-0">
-                <VoiceInterface className="py-8" />
+                <RealtimeVoiceInterface className="py-8" />
               </TabsContent>
 
               <TabsContent value="files" className="space-y-8 m-0">
