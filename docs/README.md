@@ -1,65 +1,66 @@
-# Jarvis-in-a-Box Documentation
+# Jarvis Voice Assistant Documentation 🎤
 
-Welcome to the comprehensive documentation for Jarvis-in-a-Box, a voice-first, privacy-aware personal OS.
+Welcome to the documentation for **Jarvis Voice Assistant**, a real-time voice-first AI assistant powered by OpenAI's Realtime API.
 
 ## 📚 Documentation Structure
 
-### **Core Architecture**
-- [System Overview](./01-system-overview.md) - High-level architecture and design principles
-- [Voice Interface](./02-voice-interface.md) - Voice interaction patterns and implementation
-- [Tool System](./03-tool-system.md) - Tool definitions, execution flow, and n8n integration
-- [Data Models](./04-data-models.md) - Database schemas and data structures
+### **Core Architecture** ✅
+- [System Overview](./01-system-overview.md) - Current architecture and design principles
+- [Voice Interface](./02-voice-interface.md) - Real-time voice interaction implementation
+- [Tool System](./03-tool-system.md) - Tool definitions and execution framework
+- [Data Models](./04-data-models.md) - Data structures and contracts
 
-### **Development Guides**
+### **Development Guides** ✅
 - [Getting Started](./05-getting-started.md) - Setup, installation, and first run
-- [Backend Development](./06-backend-development.md) - Express server, tool handlers, and APIs
-- [Frontend Development](./07-frontend-development.md) - Next.js UI components and voice interface
-- [n8n Workflows](./08-n8n-workflows.md) - Workflow design and implementation
+- [Backend Development](./06-backend-development.md) - FastAPI gateway and WebSocket server
 
-### **API Reference**
-- [Tool API Reference](./09-tool-api-reference.md) - Complete tool definitions and schemas
-- [Webhook API Reference](./10-webhook-api-reference.md) - n8n webhook contracts and endpoints
-- [Database API Reference](./11-database-api-reference.md) - LifeDB operations and queries
+### **Current Status** 🚧
+- **✅ Working**: Real-time voice interface, audio processing, WebSocket communication
+- **🚧 In Progress**: Tool system expansion, additional voice commands
+- **📋 Planned**: Enhanced error handling, performance optimization
 
-### **Advanced Topics**
-- [Context Management](./12-context-management.md) - User context and prompt engineering
-- [Privacy & Security](./13-privacy-security.md) - Data protection and security measures
-- [Deployment](./14-deployment.md) - Production deployment and scaling
-- [Troubleshooting](./15-troubleshooting.md) - Common issues and solutions
-
-### **Team Coordination**
-- [Development Workflow](./16-development-workflow.md) - Git workflow, testing, and CI/CD
-- [Contract Specifications](./17-contract-specifications.md) - Shared contracts and interfaces
-- [Demo Preparation](./18-demo-preparation.md) - Demo scenarios and presentation
+### **Quick Links**
+- **Setup**: [Getting Started Guide](./05-getting-started.md) 
+- **Architecture**: [System Overview](./01-system-overview.md)
+- **Voice**: [Voice Interface Details](./02-voice-interface.md)
+- **Backend**: [Backend Development](./06-backend-development.md)
 
 ## 🚀 Quick Start
 
-1. **Setup**: Follow [Getting Started Guide](./05-getting-started.md)
-2. **Architecture**: Read [System Overview](./01-system-overview.md)
-3. **Development**: Choose your component:
-   - Voice Interface → [Voice Interface Guide](./02-voice-interface.md)
-   - Backend → [Backend Development](./06-backend-development.md)
-   - n8n Workflows → [n8n Workflows](./08-n8n-workflows.md)
+### **For New Developers:**
+1. **Setup**: Follow [Getting Started Guide](./05-getting-started.md) - Get everything running
+2. **Architecture**: Read [System Overview](./01-system-overview.md) - Understand the system
+3. **Voice**: Check [Voice Interface](./02-voice-interface.md) - Learn the core feature
+4. **Backend**: Explore [Backend Development](./06-backend-development.md) - Extend functionality
 
-## 📖 Reading Order
+### **For Hackathon Participants:**
+```bash
+# Quick setup
+git clone <repo-url>
+cd jarvis-voice-os
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cd frontend && npm install && cd ..
 
-**For New Team Members:**
-1. System Overview
-2. Getting Started
-3. Tool System
-4. Your specific development area
+# Start services
+# Terminal 1: Backend
+cd backend/python-services/gateway && python main.py
 
-**For Architecture Understanding:**
-1. System Overview
-2. Voice Interface
-3. Tool System
-4. Context Management
+# Terminal 2: Frontend  
+cd frontend && npm run dev
+```
 
-**For Implementation:**
-1. Getting Started
-2. Backend/Frontend Development
-3. n8n Workflows
-4. API Reference
+## 📖 Documentation Status
+
+### **✅ Up to Date**
+- [System Overview](./01-system-overview.md) - Reflects current architecture
+- [Voice Interface](./02-voice-interface.md) - Complete implementation details
+- [Getting Started](./05-getting-started.md) - Current setup process
+
+### **🚧 Needs Updates**
+- [Tool System](./03-tool-system.md) - Update for current implementation
+- [Data Models](./04-data-models.md) - Align with current contracts
+- [Backend Development](./06-backend-development.md) - Update for FastAPI
 
 ## 🔧 Contributing to Docs
 

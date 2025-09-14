@@ -1,70 +1,80 @@
 # Getting Started
 
-## 🚀 Quick Setup
+## 🚀 Quick Setup - Voice Assistant
 
 ### Prerequisites
+- **Python 3.8+** (3.13 recommended)
 - **Node.js 18+** and npm
-- **Docker** and Docker Compose
-- **OpenAI API key**
-- **Git**
+- **OpenAI API key** with Realtime API access
 
 ### 1. Clone & Install
 ```bash
 git clone <repository-url>
 cd jarvis-voice-os
-npm run setup
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies from MASTER requirements file
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Install frontend dependencies
+cd frontend
+npm install
+cd ..
 ```
 
 ### 2. Environment Setup
-Create `.env` files:
-
-**Backend** (`apps/backend/.env`):
 ```bash
-OPENAI_API_KEY=your_openai_key
-WEAVIATE_URL=http://localhost:8080
-N8N_WEBHOOK_URL=http://localhost:5678
-REDIS_URL=redis://localhost:6379
-DATABASE_PATH=../../data/life.db
-VAULT_PATH=../../data/vault
+# Copy environment template
+cp backend/python-services/gateway/env.example backend/python-services/gateway/.env
+
+# Edit .env file and add your OpenAI API key:
+# OPENAI_API_KEY=sk-your-key-here
 ```
 
-**Frontend** (`apps/frontend/.env.local`):
+### 3. Start Services
 ```bash
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-NEXT_PUBLIC_OPENAI_REALTIME_URL=wss://api.openai.com/v1/realtime
-```
+# Terminal 1: Backend
+source venv/bin/activate
+cd backend/python-services/gateway
+python main.py
 
-### 3. Start Infrastructure
-```bash
-npm run docker:up
-```
-
-### 4. Start Development
-```bash
+# Terminal 2: Frontend (new terminal)
+cd frontend
 npm run dev
 ```
 
 ## 🎯 First Run
 
 ### 1. Access the Interface
-- **Frontend**: http://localhost:3000
-- **n8n**: http://localhost:5678
-- **Weaviate**: http://localhost:8080
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **WebSocket**: ws://localhost:8000/api/realtime/{session_id}
 
 ### 2. Test Voice Interface
-1. Click the microphone button
-2. Say: "What's the weather like?"
-3. Verify weather tool execution
+1. Click the **voice button** in the interface
+2. **Push to Talk**: Click and hold to speak
+3. Say: "Hello, what's the weather like?"
+4. Release button and listen to Jarvis respond
+5. Verify audio playback works correctly
 
-### 3. Test Chat Interface
-1. Type: "Create a task called 'Test task'"
-2. Approve the action when prompted
-3. Check task was created
+### 3. Verify Audio Setup
+- **Check microphone permissions** in your browser
+- **Test audio playback** - you should hear Jarvis speak
+- **Monitor console logs** for any WebSocket errors
 
-### 4. Test Document Search
-1. Add a markdown file to `data/vault/`
-2. Say: "Search for [content from your file]"
-3. Verify search results
+### 4. SSL Certificate Fix (if needed)
+If you see SSL certificate errors:
+```bash
+# macOS Python 3.13 fix
+/Applications/Python\ 3.13/Install\ Certificates.command
+
+# Or add to .env file:
+SSL_CERT_FILE=/opt/anaconda3/lib/python3.13/site-packages/certifi/cacert.pem
+```
 
 ## 🔧 Development Workflow
 
