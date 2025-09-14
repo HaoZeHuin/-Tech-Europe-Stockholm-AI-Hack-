@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Settings, FileText, Calendar, User, Sun, Cloud, Moon, FolderOpen, BarChart3, Edit, Search } from "lucide-react";
+import { Home, Brain, Settings, FileText, Calendar, User, Sun, Cloud, Moon, FolderOpen, BarChart3, Edit, Search } from "lucide-react";
 import HeroWeather from "@/components/HeroWeather";
 import type { WeatherKind } from "@/lib/weather";
 
@@ -60,46 +60,51 @@ const Index = () => {
               >
                 <TabsTrigger
                   value="voice"
-                  className="md:justify-start gap-2 px-3 py-2 rounded-xl data-[state=active]:bg-muted"
+                  className="group md:justify-start gap-2 px-3 py-2 rounded-xl
+                            text-primary/70 hover:text-primary
+                            data-[state=active]:bg-muted data-[state=active]:text-primary"
                 >
-                  <Brain className="h-4 w-4" />
-                  <span className="hidden md:inline text-xs">Voice</span>
+                  <Home className="h-4 w-4 flex-shrink-0 stroke-[2]" />
+                  <span className="hidden md:inline text-xs">Home</span>
                 </TabsTrigger>
 
                 <TabsTrigger
                   value="files"
-                  className="md:justify-start gap-2 px-3 py-2 rounded-xl data-[state=active]:bg-muted"
+                  className="group md:justify-start gap-2 px-3 py-2 rounded-xl
+                            text-primary/70 hover:text-primary
+                            data-[state=active]:bg-muted data-[state=active]:text-primary"
                 >
-                  <FolderOpen className="h-4 w-4" />
+                  <FolderOpen className="h-4 w-4 flex-shrink-0 stroke-[2]" />
                   <span className="hidden md:inline text-xs">Files</span>
                 </TabsTrigger>
 
                 <TabsTrigger
                   value="memory"
-                  className="md:justify-start gap-2 px-3 py-2 rounded-xl data-[state=active]:bg-muted"
+                  className="group md:justify-start gap-2 px-3 py-2 rounded-xl
+                            text-primary/70 hover:text-primary
+                            data-[state=active]:bg-muted data-[state=active]:text-primary"
                 >
-                  <FileText className="h-4 w-4" />
+                  <Brain className="h-4 w-4 flex-shrink-0 stroke-[2]" />
                   <span className="hidden md:inline text-xs">Memory</span>
                 </TabsTrigger>
 
-                {/* <TabsTrigger
-                  value="profile"
-                  className="md:justify-start gap-2 px-3 py-2 rounded-xl data-[state=active]:bg-muted"
+                <TabsTrigger
+                  value="recap"
+                  className="group md:justify-start gap-2 px-3 py-2 rounded-xl
+                            text-primary/70 hover:text-primary
+                            data-[state=active]:bg-muted data-[state=active]:text-primary"
                 >
-                  <User className="h-4 w-4" />
-                  <span className="hidden md:inline text-xs">Profile</span>
-                </TabsTrigger> */}
-
-                <TabsTrigger value="recap" className="md:justify-start gap-2 px-3 py-2 rounded-xl data-[state=active]:bg-muted">
-                  <BarChart3 className="h-4 w-4" />
+                  <Calendar className="h-4 w-4 flex-shrink-0 stroke-[2]" />
                   <span className="hidden md:inline text-xs">Weekly Recap</span>
                 </TabsTrigger>
 
                 <TabsTrigger
                   value="settings"
-                  className="md:justify-start gap-2 px-3 py-2 rounded-xl data-[state=active]:bg-muted"
+                  className="group md:justify-start gap-2 px-3 py-2 rounded-xl
+                            text-primary/70 hover:text-primary
+                            data-[state=active]:bg-muted data-[state=active]:text-primary"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4 flex-shrink-0 stroke-[2]" />
                   <span className="hidden md:inline text-xs">Settings</span>
                 </TabsTrigger>
               </TabsList>
