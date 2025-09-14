@@ -90,6 +90,9 @@ class RealtimeWebSocketManager:
                         "type": "semantic_vad", 
                         "interrupt_response": True
                     },
+                    # Audio configuration - match frontend 24kHz
+                    "input_audio_sample_rate": 24000,
+                    "output_audio_sample_rate": 24000,
                     # Voice control settings
                     "temperature": 0.7,  # Control randomness
                     "max_response_output_tokens": 4096,
@@ -362,8 +365,18 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             data = await websocket.receive_text()
             message = json.loads(data)
 
-            if message["type"] == "audio":
-                # Convert int16 array to bytes
+            if message["type"] == "input_audio_buffer.append":
+                # Handle OpenAI WebSocket format: base64 PCM16 audio
+                audio_b64 = message["audio"]
+                try:
+                    # Decode base64 to bytes
+                    audio_bytes = base64.b64decode(audio_b64)
+                    await realtime_manager.send_audio(session_id, audio_bytes)
+                    logger.info(f"Received audio via input_audio_buffer.append: {len(audio_bytes)} bytes")
+                except Exception as e:
+                    logger.error(f"Error decoding base64 audio: {e}")
+            elif message["type"] == "audio":
+                # Legacy support: Convert int16 array to bytes
                 int16_data = message["data"]
                 audio_bytes = struct.pack(f"{len(int16_data)}h", *int16_data)
                 await realtime_manager.send_audio(session_id, audio_bytes)
@@ -409,8 +422,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             }
                         )
                     )
+            elif message["type"] == "input_audio_buffer.commit":
+                # Handle OpenAI WebSocket format: commit audio buffer
+                await realtime_manager.send_client_event(session_id, {"type": "input_audio_buffer.commit"})
+                logger.info("Received input_audio_buffer.commit from client")
             elif message["type"] == "commit_audio":
-                # Force close the current input audio turn
+                # Legacy support: Force close the current input audio turn
                 await realtime_manager.send_client_event(session_id, {"type": "input_audio_buffer.commit"})
             elif message["type"] == "image_start":
                 img_id = str(message.get("id"))
