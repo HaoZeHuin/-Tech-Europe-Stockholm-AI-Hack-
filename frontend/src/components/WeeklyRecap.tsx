@@ -1,4 +1,3 @@
-// src/components/WeeklyRecap.tsx
 import { Card } from "@/components/ui/card";
 import { Moon, Smile, Target, HeartPulse, Edit } from "lucide-react";
 import { useMemo } from "react";

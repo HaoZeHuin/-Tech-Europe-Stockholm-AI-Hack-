@@ -35,7 +35,7 @@ export default function SideRail() {
               <NavItem value="voice" icon={Brain} label="Voice" />
               <NavItem value="files" icon={FolderOpen} label="Files" />
               <NavItem value="memory" icon={FileText} label="Memory" />
-              <NavItem value="recap" icon={BarChart3} label="Weekly recap" />
+              <NavItem value="recap" icon={BarChart3} label="Weekly Recap" />
               <NavItem value="settings" icon={Settings} label="Settings" />
             </TabsList>
           </div>

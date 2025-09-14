@@ -1,17 +1,7 @@
-import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { 
-  Brain, 
-  MessageSquare, 
-  Settings, 
-  Calendar, 
-  FileText, 
-  Languages,
-  History,
-  Trash2,
-  User,
-  Home,
-  X
+import { useEffect, useState } from "react";
+import {
+  Brain, Settings, Calendar, FileText, Languages,
+  History, Trash2, User, Home, X
 } from "lucide-react";
 
 import {
@@ -27,13 +17,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+
+import { NAV_ITEMS } from "@/components/nav-items";
+import type { NavKey } from "@/components/nav-items";
+import { navGo, onNavGo } from "@/lib/nav-bus";
 
 interface ChatHistory {
   id: string;
@@ -42,71 +32,67 @@ interface ChatHistory {
   preview: string;
 }
 
-interface AppSidebarProps {
+type AppSidebarProps = {
+  open?: boolean;                         // optional controlled open (for scrim)
+  onOpenChange?: (open: boolean) => void; // notify parent App.tsx
   chatHistory: ChatHistory[];
   onDeleteChat: (id: string) => void;
   onSelectChat: (id: string) => void;
   currentLanguage: string;
   onLanguageChange: (language: string) => void;
-}
+};
 
 const languages = [
-  { code: "en", name: "English" },
-  { code: "es", name: "Español" },
-  { code: "fr", name: "Français" },
-  { code: "de", name: "Deutsch" },
-  { code: "it", name: "Italiano" },
-  { code: "pt", name: "Português" },
-  { code: "ru", name: "Русский" },
-  { code: "zh", name: "中文" },
-  { code: "ja", name: "日本語" },
-  { code: "ko", name: "한국어" },
+  { code: "en", name: "English" }, { code: "es", name: "Español" },
+  { code: "fr", name: "Français" }, { code: "de", name: "Deutsch" },
+  { code: "it", name: "Italiano" }, { code: "pt", name: "Português" },
+  { code: "ru", name: "Русский" }, { code: "zh", name: "中文" },
+  { code: "ja", name: "日本語" }, { code: "ko", name: "한국어" },
 ];
 
-const mainNavItems = [
-  { title: "Home", url: "/", icon: Home },
-  { title: "Voice Assistant", url: "/voice", icon: Brain },
-  { title: "Memory", url: "/memory", icon: FileText },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
-
-export function AppSidebar({ 
-  chatHistory, 
-  onDeleteChat, 
+export function AppSidebar({
+  open,
+  onOpenChange,
+  chatHistory,
+  onDeleteChat,
   onSelectChat,
   currentLanguage,
-  onLanguageChange 
+  onLanguageChange,
 }: AppSidebarProps) {
+  // shadcn sidebar state (expanded vs collapsed)
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
-  const currentPath = location.pathname;
 
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
+  // // keep track of active tab via the nav bus (so highlight stays in sync)
+  // const [activeKey, setActiveKey] = useState<NavKey>("home");
+  // useEffect(() => onNavGo((k) => setActiveKey(k)), []);
+
+  // let App.tsx know when the sidebar is "open" (i.e., not collapsed)
+  useEffect(() => {
+    onOpenChange?.(!collapsed);
+  }, [collapsed, onOpenChange]);
+
+  // styling helper
+  const itemCls = (isActive: boolean) =>
+    `h-8 px-2 w-full flex items-center rounded-md ${
+      isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+    }`;
 
   return (
     <Sidebar
-      className={collapsed ? "w-14" : "w-80"}
+      className={`z-50 ${collapsed ? "w-14" : "w-80"}`}
       collapsible="icon"
       variant="sidebar"
     >
       <SidebarContent className="p-2">
-        {/* Sidebar trigger always at top */}
+        {/* Trigger & close button */}
         <div className="flex justify-start items-center mb-2 px-2">
-          <SidebarTrigger 
-            data-sidebar="trigger" 
-            className="h-8 w-8 p-0"
-          />
+          <SidebarTrigger data-sidebar="trigger" className="h-8 w-8 p-0" />
+          {!collapsed && <div className="flex-1" />}
           {!collapsed && (
-            <div className="flex-1" />
-          )}
-          {!collapsed && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-8 w-8 p-0"
               onClick={toggleSidebar}
               aria-label="Close sidebar"
@@ -115,29 +101,37 @@ export function AppSidebar({
             </Button>
           )}
         </div>
-        
-        {/* Main Navigation */}
-        <SidebarGroup>
+
+        {/* Navigation */}
+        {/* <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2">
             {!collapsed && "Navigation"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-8 px-2">
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!collapsed && <span className="text-sm ml-2">{item.title}</span>}
-                    </NavLink>
+              {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
+                <SidebarMenuItem key={key}>
+                  <SidebarMenuButton asChild>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navGo(key);             // switch tab
+                        // on mobile/overlay, collapse after choosing
+                        if (!collapsed) toggleSidebar();
+                      }}
+                      className={itemCls(activeKey === key)}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      {!collapsed && <span className="text-sm ml-2">{label}</span>}
+                    </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
 
-        {/* Language Settings */}
+        {/* Language */}
         {!collapsed && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2">
@@ -165,7 +159,7 @@ export function AppSidebar({
           </SidebarGroup>
         )}
 
-        {/* Chat History - Only visible when expanded */}
+        {/* Recent Chats */}
         {!collapsed && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2">
@@ -176,11 +170,11 @@ export function AppSidebar({
                 {chatHistory.slice(0, 10).map((chat) => (
                   <SidebarMenuItem key={chat.id}>
                     <div className="flex items-center space-x-1 group">
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         onClick={() => onSelectChat(chat.id)}
                         className="flex-1 justify-start h-auto px-2 py-1"
                       >
-                        <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                        <Brain className="h-4 w-4 flex-shrink-0" />
                         <div className="flex-1 min-w-0 ml-2">
                           <div className="text-xs font-medium truncate">
                             {chat.title}
@@ -200,15 +194,13 @@ export function AppSidebar({
                       </Button>
                     </div>
                   </SidebarMenuItem>
-              ))}
-              
+                ))}
+
                 {chatHistory.length === 0 && (
                   <SidebarMenuItem>
                     <div className="px-2 py-4 text-center">
                       <History className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        No chat history yet
-                      </p>
+                      <p className="text-xs text-muted-foreground">No chat history yet</p>
                     </div>
                   </SidebarMenuItem>
                 )}
@@ -217,7 +209,7 @@ export function AppSidebar({
           </SidebarGroup>
         )}
 
-        {/* User Profile */}
+        {/* User */}
         {!collapsed && (
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
