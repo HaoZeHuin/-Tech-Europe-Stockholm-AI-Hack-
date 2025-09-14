@@ -31,9 +31,8 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
   const bufferDurationRef = useRef(0);
   const isRecordingRef = useRef(false);
 
-  // Audio playback refs with buffering
-  const audioPlaybackBufferRef = useRef<ArrayBuffer[]>([]);
-  const playbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Audio playback refs with jitter buffer
+  const nextScheduledTimeRef = useRef<number | null>(null);
 
   // Initialize audio context and WebSocket connection
   const initializeConnection = useCallback(async () => {
@@ -158,28 +157,17 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
         break;
         
       case 'response.audio.delta':
-        // Add chunk to buffer (will auto-start when 100ms accumulated)
+        // Schedule audio chunk immediately with jitter buffer
         if (data.delta) {
           console.log('Received audio delta:', data.delta.length, 'characters');
           const audioData = base64ToArrayBuffer(data.delta);
-          
-          // Resume audio context if needed (required by browsers)
-          if (audioPlaybackContextRef.current?.state === 'suspended') {
-            audioPlaybackContextRef.current.resume();
-          }
-          
-          // Add to buffer - will start playing when 100ms accumulated
-          addAudioToBuffer(audioData);
+          enqueuePlaybackChunk(audioData);
         }
         break;
         
       case 'response.audio.done':
         console.log('Audio response completed');
-        // Play any remaining buffered audio
-        if (audioPlaybackBufferRef.current.length > 0 && !isPlayingRef.current) {
-          console.log('Playing final buffered chunks');
-          playBufferedAudio();
-        }
+        setIsSpeaking(false);
         break;
         
       case 'response.text.delta':
@@ -202,83 +190,66 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
     }
   };
 
-  // Buffer and play audio chunks with 100ms minimum buffer
-  const addAudioToBuffer = (rawPcmData: ArrayBuffer) => {
-    audioPlaybackBufferRef.current.push(rawPcmData);
-    
-    // Calculate total buffered duration
-    let totalDuration = 0;
-    for (const chunk of audioPlaybackBufferRef.current) {
-      const pcm16Array = new Int16Array(chunk);
-      totalDuration += (pcm16Array.length / 24000) * 1000; // duration in ms at 24kHz
-    }
-    
-    console.log(`Audio buffer: ${audioPlaybackBufferRef.current.length} chunks, ${totalDuration.toFixed(1)}ms total`);
-    
-    // Start playback when we have at least 100ms of audio
-    if (!isPlayingRef.current && totalDuration >= 100) {
-      console.log('Starting buffered playback with', totalDuration.toFixed(1), 'ms of audio');
-      playBufferedAudio();
-    }
-  };
-
-  // Play all buffered audio as one continuous stream
-  const playBufferedAudio = async () => {
-    if (!audioPlaybackContextRef.current || audioPlaybackBufferRef.current.length === 0) return;
-    
-    isPlayingRef.current = true;
-    setIsSpeaking(true);
+  // Jitter buffer playback with timeline scheduling
+  const JITTER_BUFFER_MS = 80; // 80ms jitter buffer
+  
+  const enqueuePlaybackChunk = async (audioData: ArrayBuffer) => {
+    if (!audioPlaybackContextRef.current) return;
     
     try {
-      // Combine all buffered chunks into one continuous buffer
-      let totalSamples = 0;
-      const chunks: Int16Array[] = [];
+      const ctx = audioPlaybackContextRef.current;
       
-      for (const chunk of audioPlaybackBufferRef.current) {
-        const pcm16Array = new Int16Array(chunk);
-        chunks.push(pcm16Array);
-        totalSamples += pcm16Array.length;
+      // Ensure audio context is running
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
       }
       
-      // Create one large AudioBuffer at 24kHz
-      const audioBuffer = audioPlaybackContextRef.current.createBuffer(1, totalSamples, 24000);
+      // Convert PCM16 to AudioBuffer
+      const pcm16Data = new Int16Array(audioData);
+      const audioBuffer = ctx.createBuffer(1, pcm16Data.length, 24000);
       const channelData = audioBuffer.getChannelData(0);
       
-      // Copy all chunks into the continuous buffer
-      let offset = 0;
-      for (const chunk of chunks) {
-        for (let i = 0; i < chunk.length; i++) {
-          channelData[offset + i] = chunk[i] / 32768.0; // Convert from int16 to float32
-        }
-        offset += chunk.length;
+      // Convert PCM16 to float32
+      for (let i = 0; i < pcm16Data.length; i++) {
+        channelData[i] = pcm16Data[i] / 32768.0;
       }
       
-      console.log(`Playing continuous buffer: ${totalSamples} samples (${(totalSamples / 24000 * 1000).toFixed(1)}ms) at 24kHz`);
-      
-      // Play the continuous buffer
-      const source = audioPlaybackContextRef.current.createBufferSource();
+      // Schedule playback with jitter buffer
+      const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(audioPlaybackContextRef.current.destination);
+      source.connect(ctx.destination);
       
-      source.onended = () => {
-        isPlayingRef.current = false;
-        setIsSpeaking(false);
-        console.log('Continuous audio playback ended');
-      };
+      // Initialize playhead if needed
+      if (!nextScheduledTimeRef.current) {
+        nextScheduledTimeRef.current = ctx.currentTime + (JITTER_BUFFER_MS / 1000);
+      }
       
-      source.start();
+      // Schedule at the next available time slot
+      const startTime = Math.max(ctx.currentTime + 0.02, nextScheduledTimeRef.current);
+      source.start(startTime);
       
-      // Clear the buffer after starting playback
-      audioPlaybackBufferRef.current = [];
+      // Update next scheduled time
+      nextScheduledTimeRef.current = startTime + (audioBuffer.length / 24000);
+      
+      console.log(`Scheduled audio chunk: ${pcm16Data.length} samples (${(pcm16Data.length / 24000 * 1000).toFixed(1)}ms) at time ${startTime.toFixed(3)}`);
+      setIsSpeaking(true);
       
     } catch (error) {
-      console.error('Error playing buffered audio:', error);
-      isPlayingRef.current = false;
-      setIsSpeaking(false);
+      console.error('Error scheduling audio chunk:', error);
     }
   };
 
-  // Send accumulated audio data
+  // Convert Int16Array to base64 for OpenAI WebSocket format
+  const int16ToBase64 = (pcm: Int16Array): string => {
+    const bytes = new Uint8Array(pcm.buffer);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) {
+      bin += String.fromCharCode(bytes[i]);
+    }
+    return btoa(bin);
+  };
+
+  // Send accumulated audio data using OpenAI WebSocket format
   const sendAccumulatedAudio = () => {
     if (audioBufferRef.current.length === 0 || !wsRef.current) return;
     
@@ -292,17 +263,17 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
       offset += chunk.length;
     }
     
-    // Send the combined audio data
+    // Send using OpenAI WebSocket format: input_audio_buffer.append
     wsRef.current.send(JSON.stringify({
-      type: 'audio',
-      data: Array.from(combinedAudio)
+      type: 'input_audio_buffer.append',
+      audio: int16ToBase64(combinedAudio)
     }));
     
     // Clear the buffer
     audioBufferRef.current = [];
     bufferDurationRef.current = 0;
     
-    console.log('Sent audio chunk:', combinedAudio.length, 'samples');
+    console.log('Sent accumulated audio via input_audio_buffer.append:', totalLength, 'samples');
   };
 
   // Toggle push-to-talk
@@ -320,10 +291,10 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
         sendAccumulatedAudio();
       }
       
-      // Only commit if we have sent some audio
+      // Commit audio buffer using OpenAI WebSocket format
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        console.log('Committing audio buffer');
-        wsRef.current.send(JSON.stringify({ type: 'commit_audio' }));
+        console.log('Committing audio buffer via input_audio_buffer.commit');
+        wsRef.current.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
       }
     } else {
       // Start recording
@@ -375,12 +346,8 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
     bufferDurationRef.current = 0;
     isRecordingRef.current = false;
     
-    // Clear playback buffer
-    audioPlaybackBufferRef.current = [];
-    if (playbackTimeoutRef.current) {
-      clearTimeout(playbackTimeoutRef.current);
-      playbackTimeoutRef.current = null;
-    }
+    // Reset playback scheduling
+    nextScheduledTimeRef.current = null;
   };
 
   // Utility functions
@@ -508,3 +475,4 @@ export function RealtimeVoiceInterface({ className }: RealtimeVoiceInterfaceProp
     </div>
   );
 }
+

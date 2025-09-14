@@ -10,6 +10,8 @@ import { useState } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Logo from "./components/Logo";
+import AppHeader from "./components/AppHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +23,7 @@ interface ChatHistory {
 }
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
     {
       id: "1",
@@ -61,7 +64,9 @@ function App() {
           <CursorGoop />
           <SidebarProvider>
             <div className="min-h-screen flex w-full">
-              <AppSidebar 
+              <AppSidebar
+                open={sidebarOpen}
+                onOpenChange={setSidebarOpen}
                 chatHistory={chatHistory}
                 onDeleteChat={handleDeleteChat}
                 onSelectChat={handleSelectChat}
@@ -69,13 +74,24 @@ function App() {
                 onLanguageChange={handleLanguageChange}
               />
               
-              <div className="flex-1 flex flex-col">
-                {/* Header without sidebar trigger */}
-                <header className="h-12 flex items-center border-b bg-background px-4">
-                  <Logo className="h-5 w-auto" />
+              <div className="relative flex-1 flex flex-col">
+                {/* SCRIM: darken the rest of the screen while sidebar is open */}
+                {sidebarOpen && (
+                  <div
+                    className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity"
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                )}
+
+                {/* Top bar: put it *under* the scrim so it darkens as well */}
+                <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
+                  <div className="h-12 px-4 flex items-center justify-between">
+                    <Logo className="h-5 w-auto" />
+                    <ThemeToggle />
+                  </div>
                 </header>
-                
-                <main className="flex-1">
+
+                <main className="relative z-30 flex-1">
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="*" element={<NotFound />} />
@@ -89,5 +105,4 @@ function App() {
     </QueryClientProvider>
   );
 }
-
 export default App;

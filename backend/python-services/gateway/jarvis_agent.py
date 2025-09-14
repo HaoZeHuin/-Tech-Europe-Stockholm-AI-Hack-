@@ -9,11 +9,30 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
 from agents import function_tool
 from agents.realtime import RealtimeAgent
-from prompts import REALTIME_SYSTEM_PROMPT
+#from prompts import REALTIME_SYSTEM_PROMPT
 
 # Service URLs
 N8N_SERVICE_URL = os.getenv("N8N_SERVICE_URL", "http://localhost:8001")
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:8002")
+
+REALTIME_SYSTEM_PROMPT = """
+You are a real-time voice assistant.  
+Your role is to hold natural, spoken-style conversations with the user.  
+Always respond in short, conversational sentences that sound natural when spoken aloud. Avoid long, formal explanations unless the user explicitly asks for detail.  
+
+You have access to function tools that allow you to perform actions, fetch data, or handle specific tasks.  
+- Use a tool when the user's request clearly requires it.  
+- Do not describe the tool call to the user.  
+- Output the tool call in the expected format when needed.  
+- After receiving a tools result, explain it conversationally.  
+
+Guidelines:  
+- Keep responses brief (1-3 sentences), unless more detail is requested.  
+- Ask clarifying questions if the user's intent is ambiguous.  
+- Never invent tools or parameters. Only use the tools you have been provided.  
+- Default to direct, natural speech when no tool is necessary.  
+
+"""
 
 ### JARVIS TOOLS
 
@@ -215,9 +234,34 @@ async def note_append_tool(path: str, content: str, section: str = "") -> str:
                 
     except Exception as e:
         return f"Error updating note: {str(e)}"
+    
+@function_tool
+def daily_update_tool():
+    """ Function that gets updates for weather, headlines and daily tasks. Returns data in JSON format """
+    response = httpx.get("https://ignatiusoey.app.n8n.cloud/webhook/92f56daa-8199-4b3b-b6f3-d968d68301d1")
+    data = response.json()
+    return data
 
+@function_tool
+def create_event(start:str, end: str, event_name: str):
+    """
+    Function that creates a new event in google calendar
 
-# Single Jarvis Agent - handles everything with tools
+    Args:
+        start: The starting datetime of the event in ISO format
+        end: The ending datetime of the event in ISO format
+        event_name: The name of the event name to be created 
+    """
+    body = {
+        "start": start,
+        "end": end,
+        "event_name": event_name
+    }
+    response = httpx.post("https://ignatiusoey.app.n8n.cloud/webhook/create_calendar_event", json=body)
+    data = response.json()
+    return data
+
+""" # Single Jarvis Agent - handles everything with tools
 jarvis_agent = RealtimeAgent(
     name="Jarvis",
     instructions=REALTIME_SYSTEM_PROMPT,
@@ -233,7 +277,13 @@ jarvis_agent = RealtimeAgent(
         
         # Weather
         weather_get_current_tool,
+        daily_update_tool
     ],
+) """
+jarvis_agent = RealtimeAgent(
+    name="Jarvis",
+    instructions=REALTIME_SYSTEM_PROMPT,
+    tools=[daily_update_tool, create_event]
 )
 
 
