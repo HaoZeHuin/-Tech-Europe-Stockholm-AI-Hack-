@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 // Put this near the top of your component (outside the function) if you want base URL support:
 const API_BASE =
-  (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/+$/, "");
+  (import.meta.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/+$/, "");
 
 interface FileItem {
   id: string;
