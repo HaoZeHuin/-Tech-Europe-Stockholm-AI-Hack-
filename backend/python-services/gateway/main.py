@@ -485,6 +485,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                         await websocket.send_text(
                             json.dumps({"type": "error", "error": "Empty image."})
                         )
+            elif message["type"] == "tool_call":
+                print(message)
             elif message["type"] == "interrupt":
                 await realtime_manager.interrupt(session_id)
 
