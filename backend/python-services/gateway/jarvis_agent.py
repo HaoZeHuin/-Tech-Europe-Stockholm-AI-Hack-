@@ -242,6 +242,24 @@ def daily_update_tool():
     data = response.json()
     return data
 
+@function_tool
+def create_event(start:str, end: str, event_name: str):
+    """
+    Function that creates a new event in google calendar
+
+    Args:
+        start: The starting datetime of the event in ISO format
+        end: The ending datetime of the event in ISO format
+        event_name: The name of the event name to be created 
+    """
+    body = {
+        "start": start,
+        "end": end,
+        "event_name": event_name
+    }
+    response = httpx.post("https://ignatiusoey.app.n8n.cloud/webhook/create_calendar_event", json=body)
+    data = response.json()
+    return data
 
 """ # Single Jarvis Agent - handles everything with tools
 jarvis_agent = RealtimeAgent(
@@ -265,7 +283,7 @@ jarvis_agent = RealtimeAgent(
 jarvis_agent = RealtimeAgent(
     name="Jarvis",
     instructions=REALTIME_SYSTEM_PROMPT,
-    tools=[daily_update_tool]
+    tools=[daily_update_tool, create_event]
 )
 
 
