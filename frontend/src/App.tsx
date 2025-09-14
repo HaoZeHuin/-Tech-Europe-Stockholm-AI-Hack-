@@ -9,6 +9,7 @@ import { CursorGoop } from "@/components/CursorGoop";
 import { useState } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Logo from "./components/Logo";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +72,7 @@ function App() {
               <div className="flex-1 flex flex-col">
                 {/* Header without sidebar trigger */}
                 <header className="h-12 flex items-center border-b bg-background px-4">
-                  <h1 className="text-lg font-semibold font-['Playfair_Display']">Jarvis</h1>
+                  <Logo className="h-5 w-auto" />
                 </header>
                 
                 <main className="flex-1">
