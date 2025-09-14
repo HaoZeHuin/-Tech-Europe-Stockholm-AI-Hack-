@@ -5,14 +5,15 @@ import logging
 import struct
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+import shutil
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing_extensions import assert_never
 import httpx
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Import OpenAI Agents SDK components
 try:
@@ -345,6 +346,19 @@ async def health_check():
         "environment": os.getenv("ENVIRONMENT", "development")
     }
 
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+@app.post("/api/upload")
+async def upload(file: UploadFile = File(...)):
+    # read bytes (streamed, efficient)
+    file_path = UPLOAD_DIR / file.filename
+
+    # e.g. save to disk
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {"filename": file.filename, "saved_to": str(file_path)}
 
 
 
