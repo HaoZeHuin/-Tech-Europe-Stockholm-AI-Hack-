@@ -111,7 +111,7 @@ export function FileManager() {
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
-    input.accept = ".md,.pdf"; // must match your backend allow-list
+    input.accept = ".md,.pdf,.txt"; // must match your backend allow-list
 
     input.onchange = async () => {
       const chosen = Array.from(input.files || []);

@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 
 from schemas import PromptRequest
 from jarvis import Jarvis
+from db.upload_api import router as upload_router
+from db.memory_api import router as memory_router
+
 
 load_dotenv()
 
@@ -24,6 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(upload_router)   # exposes POST /upload/files
+app.include_router(memory_router)
 
 jarvis = Jarvis()
 
