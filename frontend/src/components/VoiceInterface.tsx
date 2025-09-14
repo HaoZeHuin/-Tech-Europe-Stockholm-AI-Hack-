@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Mic, MicOff, Brain, FileText, Calendar, Search, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatInterface } from "./ChatInterface";
+import { doesNotReject } from "assert";
 
 interface Message {
   id: string;
@@ -48,7 +49,7 @@ export function VoiceInterface({ className }: VoiceInterfaceProps) {
     );
   }
 
-  function handleSendMessage(message: string) {
+  async function handleSendMessage(message: string) {
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString() + '_user',
@@ -60,18 +61,46 @@ export function VoiceInterface({ className }: VoiceInterfaceProps) {
     setMessages(prev => [...prev, userMessage]);
     setIsThinking(true);
     
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: Date.now().toString() + '_ai',
-        type: 'assistant',
-        content: `I understand you said: "${message}". How can I help you with that?`,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, aiMessage]);
-      setIsThinking(false);
-    }, 2000);
+    const body_json = {
+      "prompt_str": message
+    }
+    const response = await fetch("http://localhost:8000/prompt", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body_json)
+    })
+
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+
+    const aiMessage:Message = {
+      id: Date.now().toString() + '_ai',
+      type: 'assistant',
+      content: '',
+      timestamp: new Date()
+    }
+
+    setMessages(prev => [...prev, aiMessage])
+    let doneReading = false;
+    while (!doneReading) {
+      console.log(messages)
+      const { done, value } = await reader!.read();
+      doneReading = done
+      if (value) {
+        const chunk = decoder.decode(value);
+        // Update AI message content in real time
+        setMessages(prev => prev.map(msg =>
+          msg.id === aiMessage.id
+            ? { ...msg, content: msg.content + chunk }
+            : msg
+        ));
+      }
+    }
+
+    
+    setIsThinking(false)
   }
 
   const handleVoiceToggle = async () => {

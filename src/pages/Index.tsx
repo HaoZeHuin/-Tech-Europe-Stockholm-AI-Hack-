@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RealtimeVoiceInterface } from "@/components/RealtimeVoiceInterface";
+import { VoiceInterface } from "@/components/VoiceInterface";
 import { MemoryBrowser } from "@/components/MemoryBrowser";
 import { FileManager } from "@/components/FileManager";
 import { UserProfile } from "@/components/UserProfile";
@@ -209,7 +209,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="voice" className="space-y-8">
-            <RealtimeVoiceInterface className="py-8" />
+            <VoiceInterface className="py-8" />
           </TabsContent>
 
           <TabsContent value="files" className="space-y-8">
