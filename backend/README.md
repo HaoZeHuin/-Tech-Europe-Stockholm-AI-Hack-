@@ -42,12 +42,9 @@ cd express-gateway
 npm install
 cd ..
 
-# Python Services
-cd python-services/n8n-service
+# Python Services - Use MASTER requirements file
+cd ../..  # Go to project root
 pip install -r requirements.txt
-cd ../rag-service
-pip install -r requirements.txt
-cd ../..
 ```
 
 ### 2. Environment Setup
