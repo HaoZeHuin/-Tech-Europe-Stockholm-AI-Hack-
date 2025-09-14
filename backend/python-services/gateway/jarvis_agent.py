@@ -243,6 +243,13 @@ def daily_update_tool():
     return data
 
 @function_tool
+def get_todos_tool():
+    """ Function that gets the user's current tasks and reminders. Returns data in JSON format """
+    response = httpx.get("https://ignatiusoey.app.n8n.cloud/webhook/ece8f158-310b-47a3-a337-efa01606010e")
+    data = response.json()
+    return data
+
+@function_tool
 def create_event(start:str, end: str, event_name: str):
     """
     Function that creates a new event in google calendar
@@ -283,7 +290,7 @@ jarvis_agent = RealtimeAgent(
 jarvis_agent = RealtimeAgent(
     name="Jarvis",
     instructions=REALTIME_SYSTEM_PROMPT,
-    tools=[daily_update_tool, create_event]
+    tools=[daily_update_tool, create_event, get_todos_tool]
 )
 
 
