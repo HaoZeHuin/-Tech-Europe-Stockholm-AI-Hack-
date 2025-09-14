@@ -10,6 +10,7 @@ import { useState } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Logo from "./components/Logo";
+import AppHeader from "./components/AppHeader";
 
 const queryClient = new QueryClient();
 
