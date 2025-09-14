@@ -2,384 +2,281 @@
 
 ## 🎤 Overview
 
-The voice interface is the primary interaction method, providing real-time speech-to-speech communication with natural conversation flow and intelligent tool calling.
+The voice interface provides **real-time speech-to-speech communication** using OpenAI's Realtime API, enabling natural conversation with Jarvis through a push-to-talk interface.
 
 ## 🏗️ Architecture
 
-### **WebRTC Connection Flow**
+### **WebSocket Connection Flow**
 ```
-Browser                    OpenAI Realtime API
-  │                              │
-  ├─ Request Ephemeral Token ────┤
-  │                              │
-  ├─ WebRTC Connection ──────────┤
-  │                              │
-  ├─ Audio Stream ───────────────┤
-  │                              │
-  ├─ Tool Call Events ───────────┤
-  │                              │
-  └─ Response Audio ─────────────┤
+Frontend                 Backend Gateway         OpenAI Realtime API
+   │                           │                         │
+   ├─ WebSocket Connect ───────┤                         │
+   │                           ├─ Establish Session ─────┤
+   │                           │                         │
+   ├─ Audio Stream ────────────┤                         │
+   │                           ├─ Forward Audio ─────────┤
+   │                           │                         │
+   │                           ├─ Receive Response ──────┤
+   ├─ Audio Playback ──────────┤                         │
 ```
 
 ### **Component Structure**
 ```
-Frontend Voice Interface
-├── WebRTC Manager
-│   ├── Connection Management
-│   ├── Audio Streaming
-│   └── Event Handling
+RealtimeVoiceInterface.tsx
+├── Connection Management
+│   ├── WebSocket initialization
+│   ├── AudioContext setup
+│   └── Session management
 ├── Audio Processing
-│   ├── Microphone Access
-│   ├── Audio Playback
-│   └── Noise Cancellation
-├── Tool Call Handler
-│   ├── Request Processing
-│   ├── Approval UI
-│   └── Result Display
-└── Context Manager
-    ├── Conversation State
-    ├── User Preferences
-    └── Session Management
+│   ├── AudioWorklet (microphone)
+│   ├── PCM16 conversion
+│   └── Jitter buffer (playback)
+├── User Interface
+│   ├── Push-to-talk button
+│   ├── Connection status
+│   └── Speaking indicators
+└── Event Handling
+    ├── WebSocket messages
+    ├── Audio data processing
+    └── Error management
 ```
 
-## 🔧 Implementation Details
+## 🎯 User Interaction
 
-### **WebRTC Connection Setup**
+### **Push-to-Talk Interface**
+1. **Click** voice button to start listening
+2. **Speak** while button is active
+3. **Release** button to send audio to Jarvis
+4. **Listen** to Jarvis response with visual feedback
 
-```typescript
-// VoiceInterface.tsx
-import { RealtimeAPI } from 'openai';
+### **Visual Feedback**
+- **Connection Status**: Shows WebSocket connection state
+- **Listening Indicator**: Active when capturing audio
+- **Speaking Indicator**: Active when Jarvis is responding
+- **Button States**: Visual feedback for interaction states
 
-class VoiceInterface {
-  private realtime: RealtimeAPI;
-  private isConnected = false;
-  
-  async connect() {
-    // 1. Get ephemeral token from backend
-    const token = await this.getEphemeralToken();
-    
-    // 2. Initialize Realtime API
-    this.realtime = new RealtimeAPI({
-      apiKey: token,
-      model: 'gpt-4o-realtime-preview-2024-10-01',
-      tools: OPENAI_TOOLS, // From contracts
-    });
-    
-    // 3. Set up event handlers
-    this.setupEventHandlers();
-    
-    // 4. Connect
-    await this.realtime.connect();
-    this.isConnected = true;
-  }
-  
-  private setupEventHandlers() {
-    // Audio input/output
-    this.realtime.on('audio.input', this.handleAudioInput);
-    this.realtime.on('audio.output', this.handleAudioOutput);
-    
-    // Tool calling
-    this.realtime.on('tool_call', this.handleToolCall);
-    this.realtime.on('tool_result', this.handleToolResult);
-    
-    // Connection events
-    this.realtime.on('connected', this.onConnected);
-    this.realtime.on('disconnected', this.onDisconnected);
-    this.realtime.on('error', this.onError);
-  }
+## 🔧 Technical Implementation
+
+### **Audio Pipeline**
+
+#### **Input Processing**
+```javascript
+// AudioWorklet captures microphone at 24kHz
+navigator.mediaDevices.getUserMedia({ 
+  audio: { 
+    sampleRate: 24000,
+    channelCount: 1,
+    echoCancellation: true,
+    noiseSuppression: true
+  } 
+})
+
+// Convert Float32 to Int16 PCM
+const int16Data = new Int16Array(float32Data.length);
+for (let i = 0; i < float32Data.length; i++) {
+  int16Data[i] = Math.max(-32768, Math.min(32767, float32Data[i] * 32767));
 }
+
+// Encode to base64 for WebSocket transmission
+const base64Audio = int16ToBase64(int16Data);
 ```
 
-### **Audio Processing**
-
-```typescript
-// AudioManager.ts
-class AudioManager {
-  private audioContext: AudioContext;
-  private microphone: MediaStream;
-  private audioElement: HTMLAudioElement;
+#### **Output Processing**
+```javascript
+// Jitter buffer for smooth playback
+const JITTER_BUFFER_MS = 80;
+const enqueuePlaybackChunk = async (audioData) => {
+  const audioBuffer = audioContext.createBuffer(1, pcm16Data.length, 24000);
+  const source = audioContext.createBufferSource();
+  source.buffer = audioBuffer;
   
-  async initialize() {
-    // 1. Get microphone access
-    this.microphone = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 16000, // Optimized for speech
-      }
-    });
-    
-    // 2. Set up audio context
-    this.audioContext = new AudioContext({
-      sampleRate: 16000,
-      latencyHint: 'interactive',
-    });
-    
-    // 3. Create audio processing pipeline
-    this.setupAudioPipeline();
-  }
-  
-  private setupAudioPipeline() {
-    const source = this.audioContext.createMediaStreamSource(this.microphone);
-    const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-    
-    processor.onaudioprocess = (event) => {
-      const audioData = event.inputBuffer.getChannelData(0);
-      this.processAudioChunk(audioData);
-    };
-    
-    source.connect(processor);
-    processor.connect(this.audioContext.destination);
-  }
-  
-  private processAudioChunk(audioData: Float32Array) {
-    // Convert to format expected by OpenAI
-    const pcm16 = this.convertToPCM16(audioData);
-    this.realtime.sendAudio(pcm16);
-  }
-}
-```
-
-### **Tool Call Handling**
-```typescript
-// ToolCallHandler.ts
-class ToolCallHandler {
-  private backend: BackendAPI;
-  
-  async handleToolCall(toolCall: ToolCall) {
-    const { name, parameters } = toolCall.function;
-    
-    // 1. Show approval UI for write operations
-    if (this.requiresApproval(name)) {
-      const approved = await this.showApprovalDialog(toolCall);
-      if (!approved) {
-        this.realtime.sendToolResult(toolCall.id, {
-          success: false,
-          message: "User declined the action"
-        });
-        return;
-      }
-    }
-    
-    // 2. Execute tool
-    try {
-      const result = await this.executeTool(name, parameters);
-      this.realtime.sendToolResult(toolCall.id, result);
-    } catch (error) {
-      this.realtime.sendToolResult(toolCall.id, {
-        success: false,
-        error: error.message
-      });
-    }
-  }
-  
-  private async executeTool(name: string, parameters: any) {
-    // Direct tools (weather, maps, etc.)
-    if (this.isDirectTool(name)) {
-      return await this.backend.callDirectTool(name, parameters);
-    }
-    
-    // n8n workflow tools
-    if (this.isN8nTool(name)) {
-      return await this.backend.callN8nWorkflow(name, parameters);
-    }
-    
-    throw new Error(`Unknown tool: ${name}`);
-  }
-  
-  private requiresApproval(toolName: string): boolean {
-    const writeTools = [
-      'note_append',
-      'task_create', 
-      'calendar_scheduling',
-      'weekly_planner',
-      'pdf_inbox'
-    ];
-    return writeTools.includes(toolName);
-  }
-}
-```
-
-## 🎯 Voice Interaction Patterns
-
-### **Natural Conversation Flow**
-
-```typescript
-// Example voice interactions
-const voicePatterns = {
-  // Simple queries
-  "What's the weather like?": {
-    tool: "weather_lookup",
-    parameters: { location: "current" }
-  },
-  
-  // Complex requests
-  "Schedule a meeting with John tomorrow at 2pm": {
-    tool: "calendar_scheduling",
-    parameters: {
-      title: "Meeting with John",
-      start_time: "2024-09-14T14:00:00Z",
-      duration_minutes: 60,
-      attendee_emails: ["john@example.com"]
-    }
-  },
-  
-  // Context-aware requests
-  "Add this to my notes": {
-    tool: "note_append",
-    parameters: {
-      path: "daily/2024-09-13.md",
-      markdown: "[Previous conversation context]"
-    }
-  }
-};
-```
-
-### **Approval Workflows**
-
-```typescript
-// ApprovalDialog.tsx
-const ApprovalDialog = ({ toolCall, onApprove, onDecline }) => {
-  const getApprovalMessage = (toolCall) => {
-    switch (toolCall.function.name) {
-      case 'calendar_scheduling':
-        return `Schedule "${toolCall.function.arguments.title}" at ${toolCall.function.arguments.start_time}?`;
-      
-      case 'note_append':
-        return `Add this to your notes: "${toolCall.function.arguments.markdown.substring(0, 100)}..."?`;
-      
-      case 'task_create':
-        return `Create task: "${toolCall.function.arguments.title}"?`;
-      
-      default:
-        return `Execute ${toolCall.function.name}?`;
-    }
-  };
-  
-  return (
-    <div className="approval-dialog">
-      <h3>Confirm Action</h3>
-      <p>{getApprovalMessage(toolCall)}</p>
-      <div className="buttons">
-        <button onClick={onApprove}>Yes, proceed</button>
-        <button onClick={onDecline}>Cancel</button>
-      </div>
-    </div>
+  // Schedule with timeline for smooth playback
+  const startTime = Math.max(
+    audioContext.currentTime + 0.02, 
+    nextScheduledTime
   );
+  source.start(startTime);
+  nextScheduledTime = startTime + (audioBuffer.length / 24000);
 };
 ```
 
-## 🔊 Audio Quality & Performance
+### **WebSocket Protocol**
 
-### **Audio Processing Pipeline**
+#### **Sending Audio**
+```javascript
+// Send audio to backend
+websocket.send(JSON.stringify({
+  type: 'input_audio_buffer.append',
+  audio: base64AudioData
+}));
 
-```
-Microphone Input
-    ↓
-Noise Cancellation
-    ↓
-Echo Cancellation
-    ↓
-Auto Gain Control
-    ↓
-16kHz PCM Encoding
-    ↓
-WebRTC Stream
-    ↓
-OpenAI Processing
-    ↓
-TTS Response
-    ↓
-Audio Playback
+// Commit audio buffer
+websocket.send(JSON.stringify({
+  type: 'input_audio_buffer.commit'
+}));
 ```
 
-### **Performance Optimization**
+#### **Receiving Audio**
+```javascript
+// Handle incoming audio response
+case 'response.audio.delta':
+  const audioData = base64ToArrayBuffer(data.delta);
+  enqueuePlaybackChunk(audioData);
+  break;
 
-```typescript
-// Performance optimizations
-const audioConfig = {
-  // Input settings
-  sampleRate: 16000,        // Optimal for speech recognition
-  bufferSize: 4096,         // Balance between latency and stability
-  channels: 1,              // Mono audio
-  
-  // Processing settings
-  noiseSuppression: true,   // Reduce background noise
-  echoCancellation: true,   // Prevent echo feedback
-  autoGainControl: true,    // Normalize volume levels
-  
-  // Network settings
-  bitrate: 64000,           // 64kbps for voice
-  latency: 'interactive',   // Minimize delay
-  jitterBuffer: 50,         // 50ms jitter buffer
+case 'response.audio.done':
+  setIsSpeaking(false);
+  break;
+```
+
+### **Audio Format Specifications**
+
+| Property | Value | Description |
+|----------|--------|-------------|
+| **Format** | PCM16 | 16-bit linear PCM |
+| **Sample Rate** | 24kHz | High quality audio |
+| **Channels** | Mono | Single channel |
+| **Encoding** | Base64 | For WebSocket transmission |
+| **Buffer Size** | 512 samples | ~21ms at 24kHz |
+
+## 🎛️ Configuration
+
+### **Audio Context Setup**
+```javascript
+const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+  sampleRate: 24000  // Match OpenAI Realtime API
+});
+
+const audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)({
+  sampleRate: 24000  // Ensure consistent playback rate
+});
+```
+
+### **Jitter Buffer Configuration**
+```javascript
+const JITTER_BUFFER_MS = 80;  // 80ms buffer for smooth playback
+let nextScheduledTime = null;  // Timeline scheduling reference
+```
+
+### **AudioWorklet Registration**
+```javascript
+await audioContext.audioWorklet.addModule('/audio-processor.js');
+const processorNode = new AudioWorkletNode(audioContext, 'audio-processor', {
+  processorOptions: { bufferSize: 512 }  // ~21ms buffer
+});
+```
+
+## 🚨 Error Handling
+
+### **Connection Errors**
+```javascript
+websocket.onerror = (error) => {
+  console.error('WebSocket error:', error);
+  setConnectionStatus('error');
+  // Attempt reconnection logic
+};
+
+websocket.onclose = (event) => {
+  if (event.code !== 1000) {  // Not a normal closure
+    console.error('WebSocket closed unexpectedly:', event);
+    // Handle reconnection
+  }
 };
 ```
 
-### **Error Handling**
+### **Audio Errors**
+```javascript
+// AudioContext state handling
+if (audioContext.state === 'suspended') {
+  await audioContext.resume();
+}
 
-```typescript
-// Error handling patterns
-class VoiceErrorHandler {
-  handleConnectionError(error: Error) {
-    switch (error.code) {
-      case 'NETWORK_ERROR':
-        this.showMessage("Connection lost. Reconnecting...");
-        this.reconnect();
-        break;
-      
-      case 'AUDIO_PERMISSION_DENIED':
-        this.showMessage("Microphone access required for voice interface");
-        this.requestMicrophonePermission();
-        break;
-      
-      case 'TOOL_EXECUTION_ERROR':
-        this.showMessage("Sorry, I couldn't complete that action. Please try again.");
-        break;
-      
-      default:
-        this.showMessage("Something went wrong. Please try again.");
-        console.error('Voice error:', error);
-    }
-  }
-  
-  async reconnect() {
-    try {
-      await this.voiceInterface.disconnect();
-      await this.voiceInterface.connect();
-      this.showMessage("Reconnected successfully");
-    } catch (error) {
-      this.showMessage("Failed to reconnect. Please refresh the page.");
-    }
-  }
+// Microphone permission errors
+try {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+} catch (error) {
+  console.error('Microphone access denied:', error);
+  // Show permission request UI
 }
 ```
 
-## 🎯 Voice Patterns
+### **SSL Certificate Issues**
+Common on macOS Python 3.13:
+```bash
+# Install certificates
+/Applications/Python\ 3.13/Install\ Certificates.command
 
-**Simple queries**: "What's the weather?" → `weather_lookup` tool  
-**Complex requests**: "Schedule meeting with John tomorrow" → `calendar_scheduling` tool  
-**Context-aware**: "Add this to my notes" → `note_append` tool
+# Or set environment variables
+SSL_CERT_FILE=/path/to/certifi/cacert.pem
+```
 
-## 🔊 Audio Quality
+## 📊 Performance Monitoring
 
-**Pipeline**: Microphone → Noise Cancellation → 16kHz PCM → WebRTC → OpenAI → TTS → Playback
+### **Latency Tracking**
+```javascript
+// Measure round-trip latency
+const startTime = Date.now();
+websocket.send(audioData);
 
-**Performance**: < 5 second total round-trip, optimized for 16kHz sample rate
+// On response
+const latency = Date.now() - startTime;
+console.log(`Voice round-trip: ${latency}ms`);
+```
 
-## 🎨 UI Components
+### **Audio Quality Metrics**
+- **Buffer underruns**: Monitor for choppy playback
+- **Sample rate consistency**: Ensure 24kHz throughout pipeline
+- **Jitter buffer efficiency**: Track scheduling accuracy
 
-**Status indicators**: Listening/Processing states  
-**Live transcript**: Real-time speech-to-text display  
-**Approval dialogs**: Permission requests for write operations  
-**Audio controls**: Microphone toggle and volume
+## 🔧 Development & Debugging
 
-## 🔧 Configuration
+### **Console Logging**
+```javascript
+// Enable detailed audio logging
+console.log(`Sent audio: ${audioData.length} bytes`);
+console.log(`Received audio: ${audioChunk.length} samples`);
+console.log(`Scheduled at: ${startTime.toFixed(3)}s`);
+```
 
-**Audio settings**: Sensitivity, noise suppression, echo cancellation  
-**Speech settings**: Rate, pitch, voice selection  
-**Interaction**: Auto-listen, timeout, confirmation requirements
+### **WebSocket Debugging**
+```javascript
+// Monitor WebSocket messages
+websocket.addEventListener('message', (event) => {
+  const data = JSON.parse(event.data);
+  console.log('WebSocket message:', data.type, data);
+});
+```
+
+### **Audio Pipeline Debugging**
+```javascript
+// Verify audio format
+console.log('Audio format:', {
+  sampleRate: audioContext.sampleRate,
+  channels: audioBuffer.numberOfChannels,
+  length: audioBuffer.length
+});
+```
+
+## 🎯 Best Practices
+
+### **User Experience**
+- **Clear visual feedback** for all interaction states
+- **Graceful error handling** with user-friendly messages
+- **Responsive button states** for immediate feedback
+- **Consistent audio quality** across different devices
+
+### **Performance**
+- **Efficient audio processing** with minimal CPU usage
+- **Proper memory management** for audio buffers
+- **Timeline-based scheduling** for smooth playback
+- **Connection pooling** for WebSocket reliability
+
+### **Accessibility**
+- **Keyboard navigation** support
+- **Screen reader compatibility**
+- **Visual indicators** for audio states
+- **Alternative input methods** for users who can't use voice
 
 ---
 
-*See Tool System guide for tool execution details.*
+**The voice interface provides a seamless, real-time conversation experience with Jarvis!** 🎤✨
